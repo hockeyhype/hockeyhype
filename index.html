@@ -108,7 +108,7 @@ a{color:inherit;}
 button{font:inherit;color:inherit;}
 ::selection{background:var(--accent-soft);color:var(--accent-ink);}
 
-.app{max-width:1240px;margin:0 auto;padding:20px 20px 56px;}
+.app{max-width:1440px;margin:0 auto;padding:20px 20px 56px;}
 
 /* ---------- Topbar ---------- */
 .topbar{
@@ -318,7 +318,7 @@ td.col-lag:hover{text-decoration:underline;text-underline-offset:2px;color:var(-
   font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);
   margin-bottom:10px;display:flex;align-items:center;gap:8px;
 }
-.standings-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;}
+.standings-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:14px;}
 .standings-card{
   background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;
 }
@@ -352,6 +352,15 @@ td.col-lag:hover{text-decoration:underline;text-underline-offset:2px;color:var(-
 .standings-card .tp{font-weight:700;color:var(--accent-strong);}
 .standings-card .gd-pos{color:var(--u15);}
 .standings-card .gd-neg{color:var(--accent);}
+/* Fasta, smala sifferkolumner: siffrorna far alltid plats och langa lagnamn bryts i stallet */
+.standings-card table{table-layout:fixed;}
+.standings-card th:not(:nth-child(2)),.standings-card td:not(:nth-child(2)){padding-left:4px;padding-right:4px;}
+.standings-card th:nth-child(1){width:22px;}
+.standings-card th:nth-child(n+3){width:20px;}
+.standings-card th:nth-child(7){width:30px;}
+.standings-card td:nth-child(2){overflow:hidden;}
+.standings-card .lag-cell{min-width:0;}
+.standings-card .lag-text{white-space:normal;overflow-wrap:anywhere;line-height:1.25;}
 
 /* ---------- Serievy ---------- */
 .serie-vy-header{
@@ -1580,7 +1589,7 @@ function renderStandings(){
         const gdCls = gd > 0 ? 'gd-pos' : gd < 0 ? 'gd-neg' : '';
         const gdTxt = gd > 0 ? `+${gd}` : `${gd}`;
         const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${rk ?? ''}</td><td><span class="lag-cell">${lagLogoHtml(lag)}<span class="lag-text">${lag}</span></span></td><td>${gp}</td><td>${w}</td><td>${t}</td><td>${l}</td><td class="${gdCls}">${gdTxt}</td><td class="tp">${tp}</td>`;
+        tr.innerHTML = `<td>${rk ?? ''}</td><td><span class="lag-cell">${lagLogoHtml(lag)}<span class="lag-text" title="${lag}">${lag}</span></span></td><td>${gp}</td><td>${w}</td><td>${t}</td><td>${l}</td><td class="${gdCls}">${gdTxt}</td><td class="tp">${tp}</td>`;
         tr.addEventListener('click', () => filtreraPaLag(lag, g.serie));
         tbody.appendChild(tr);
       });
@@ -1705,7 +1714,7 @@ function byggSerieTabellKort(g){
     const gdCls = gd > 0 ? 'gd-pos' : gd < 0 ? 'gd-neg' : '';
     const gdTxt = gd > 0 ? `+${gd}` : `${gd}`;
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${rk ?? ''}</td><td><span class="lag-cell">${lagLogoHtml(lag)}<span class="lag-text">${lag}</span></span></td><td>${gp}</td><td>${w}</td><td>${t}</td><td>${l}</td><td class="${gdCls}">${gdTxt}</td><td class="tp">${tp}</td>`;
+    tr.innerHTML = `<td>${rk ?? ''}</td><td><span class="lag-cell">${lagLogoHtml(lag)}<span class="lag-text" title="${lag}">${lag}</span></span></td><td>${gp}</td><td>${w}</td><td>${t}</td><td>${l}</td><td class="${gdCls}">${gdTxt}</td><td class="tp">${tp}</td>`;
     tr.addEventListener('click', () => filtreraPaLag(lag, g.serie));
     tbody.appendChild(tr);
   });
