@@ -1,0 +1,67 @@
+# Hämtar färsk data från stats.swehockey.se varje morgon, sparar index.html och publicerar sidan.
+# Körs även vid push till main (publicerar bara) och kan startas för hand under Actions -> Run workflow.
+name: Daglig uppdatering
+
+on:
+  schedule:
+    - cron: "0 5 * * *"   # 05:00 UTC = 06:00 vintertid / 07:00 sommartid
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+concurrency:
+  group: hockeyhype
+  cancel-in-progress: false
+
+jobs:
+  uppdatera:
+    if: github.event_name != 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      TZ: Europe/Stockholm
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Hämta data och uppdatera sidan
+        run: python dagligen.py --sida index.html
+      - name: Spara ändringar
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          if git diff --staged --quiet; then
+            echo "Inga ändringar."
+          else
+            git commit -m "Daglig uppdatering $(date +%F)"
+            git push
+          fi
+
+  publicera:
+    needs: uppdatera
+    if: ${{ !failure() && !cancelled() }}
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Samla sidans filer
+        run: |
+          mkdir _site
+          cp index.html favicon.svg _site/
+          touch _site/.nojekyll
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deploy
+        uses: actions/deploy-pages@v4
