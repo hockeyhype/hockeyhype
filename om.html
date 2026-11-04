@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Om sidan och integritet · Hockeyhype</title>
+<meta name="description" content="Om Hockeyhype: varifrån datan kommer, hur personuppgifter hanteras och hur du kontaktar oss.">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="stylesheet" href="fonts/fonts.css">
+<style>
+:root{
+  --bg:#F1F2F6;--surface:#FFFFFF;--border:#D0D4E2;--text:#141B2E;--text-muted:#555F7A;--text-faint:#848EAA;--accent:#8E2430;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0C1220;--surface:#141C30;--border:#2E3A5E70;--text:#EBEEF6;--text-muted:#9AA3C0;--text-faint:#69739A;--accent:#E0576A;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0C1220;--surface:#141C30;--border:#2E3A5E70;--text:#EBEEF6;--text-muted:#9AA3C0;--text-faint:#69739A;--accent:#E0576A;
+  color-scheme:dark;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--text);font-family:"Karla",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased;}
+.wrap{max-width:720px;margin:0 auto;padding:24px 16px 56px;}
+header{padding-bottom:16px;margin-bottom:24px;border-bottom:2px solid var(--accent);}
+.wordmark{font-family:"Oswald",sans-serif;font-weight:700;font-size:30px;line-height:1;color:var(--text);text-decoration:none;}
+.wordmark .hype{color:var(--accent);}
+.wordmark .se{color:var(--text-faint);font-weight:500;font-size:.6em;}
+h1,h2{font-family:"Oswald",sans-serif;font-weight:600;letter-spacing:.01em;margin:0;}
+h1{font-size:26px;margin-bottom:8px;}
+h2{font-size:18px;margin:28px 0 8px;}
+p,ul{margin:0 0 12px;color:var(--text);}
+ul{padding-left:20px;}
+li{margin-bottom:4px;}
+.lead{color:var(--text-muted);}
+a{color:var(--accent);text-underline-offset:2px;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px 22px;}
+.back{display:inline-block;margin-top:24px;font-weight:600;}
+footer{margin-top:24px;font-size:13px;color:var(--text-faint);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <a class="wordmark" href="./" aria-label="hockeyhype.se - till startsidan">hockey<span class="hype">hype</span><span class="se">.se</span></a>
+  </header>
+
+  <main class="card">
+    <h1>Om sidan och integritet</h1>
+    <p class="lead">Hockeyhype samlar tabeller, resultat och spelarstatistik för Stockholms ungdomshockey (U15, U16 och U18) på ett ställe.</p>
+
+    <h2>Varifrån kommer datan?</h2>
+    <p>All statistik hämtas från Svenska Ishockeyförbundets statistiksida <a href="https://stats.swehockey.se">stats.swehockey.se</a>, där den publiceras öppet. Sidan uppdateras automatiskt varje morgon.</p>
+    <p>Hockeyhype visar samma uppgifter som swehockey: spelarnas namn, lag, position, födelseår och statistik. Fullständiga födelsedatum visas inte.</p>
+
+    <h2>Borttagna uppgifter</h2>
+    <p>Sidan speglar swehockey. Om en spelare eller en uppgift tas bort där försvinner den också här vid nästa uppdatering, oftast inom ett dygn.</p>
+    <p>Vill du att uppgifter om dig eller ditt barn tas bort från Hockeyhype? Mejla <a href="mailto:kontakt@hockeyhype.se">kontakt@hockeyhype.se</a> så hjälper vi dig. Uppgifterna finns kvar hos swehockey tills de tas bort där.</p>
+
+    <h2>Cookies och spårning</h2>
+    <ul>
+      <li>Sidan använder <strong>inga cookies</strong>, ingen besöksstatistik och inga annonser.</li>
+      <li>Om du markerar favoritserier sparas de bara i din egen webbläsare. De skickas aldrig till oss eller någon annan.</li>
+      <li>Typsnitt och allt annat på sidan ligger på vår egen server. Inga tredjepartstjänster laddas in.</li>
+    </ul>
+
+    <h2>Teknik</h2>
+    <p>Sidan ligger hos GitHub Pages och nås via Cloudflare. Som alla webbtjänster tar de emot tekniska uppgifter, till exempel IP-adress, när du besöker sidan, för att kunna leverera den och skydda den mot attacker. Vi tar inte del av eller sparar de uppgifterna.</p>
+
+    <h2>Kontakt</h2>
+    <p>Frågor, fel i datan eller önskemål? Mejla <a href="mailto:kontakt@hockeyhype.se">kontakt@hockeyhype.se</a>.</p>
+
+    <a class="back" href="./">&larr; Tillbaka till tabellerna</a>
+  </main>
+
+  <footer>Data hämtad från Svenska Ishockeyförbundets statistiksida, allmänt tillgänglig.</footer>
+</div>
+</body>
+</html>

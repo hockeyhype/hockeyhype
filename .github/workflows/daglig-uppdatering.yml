@@ -57,7 +57,7 @@ jobs:
       - name: Samla sidans filer
         run: |
           mkdir _site
-          cp index.html favicon.svg _site/
+          cp -r index.html om.html favicon.svg fonts _site/
           touch _site/.nojekyll
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
