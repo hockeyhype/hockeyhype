@@ -358,7 +358,8 @@ td.col-lag:hover{text-decoration:underline;text-underline-offset:2px;color:var(-
 .detail-row .breakdown{display:flex;flex-direction:column;gap:5px;margin-top:6px;}
 .detail-row .b-row{display:flex;gap:14px;align-items:baseline;}
 .detail-row .b-row .serie{flex:1;color:var(--text);font-weight:600;}
-.detail-row .b-row .b-lag{font-weight:400;color:var(--text-muted);}
+.detail-row .b-row .b-lag{font-weight:600;color:var(--accent-strong);text-decoration:none;}
+.detail-row .b-row .b-lag:hover{text-decoration:underline;text-underline-offset:2px;}
 .detail-row .b-row .stats{font-variant-numeric:tabular-nums;color:var(--text-muted);}
 .malvakt-grans-row td{
   padding:7px 12px;font-size:11px;font-style:italic;color:var(--text-faint);
@@ -1238,6 +1239,16 @@ function personLag(p){
   return lagen.length === 1 ? lagen[0] : klubbAvLag(lagen[0]);
 }
 
+// Lagnamnen i en spelares fordelning per serie leder till lagets sida i just den serien
+function kopplaLagLankar(el, serier){
+  el.querySelectorAll('.b-lag').forEach(a => a.addEventListener('click', e => {
+    e.preventDefault();
+    e.stopPropagation();
+    const s = serier[+a.dataset.j];
+    filtreraPaLag(s.lag, s.serie);
+  }));
+}
+
 function aggregatePlayers(rows){
   const map = new Map();
   const nycklar = personNycklar(rows);
@@ -1482,14 +1493,15 @@ function renderTable(){
         filtreraPaLag(p.serier[0].lag, p.serier[0].serie);
       });
       body.appendChild(tr);
-      if (expandedRow === i && p.serier.length > 1) {
+      if (expandedRow === i) {
         const dr = document.createElement('tr');
         dr.className = 'detail-row';
         const td = document.createElement('td');
         td.colSpan = PLAYER_COLS.length;
-        td.innerHTML = `Fördelning per serie:<div class="breakdown">${
-          p.serier.map(s => `<div class="b-row"><span class="serie">${s.serie}${s.lag !== p.lag ? ` <span class="b-lag">· ${s.lag}</span>` : ''}</span><span class="stats num">${s.gp} GP &middot; ${s.g}M ${s.a}A ${s.tp}TP &middot; ${s.pim} utv</span></div>`).join('')
+        td.innerHTML = `${p.serier.length > 1 ? 'Fördelning per serie' : 'Serie'}:<div class="breakdown">${
+          p.serier.map((s, j) => `<div class="b-row"><span class="serie">${s.serie} <a href="#" class="b-lag" data-j="${j}" title="Visa ${s.lag}">· ${s.lag}</a></span><span class="stats num">${s.gp} GP &middot; ${s.g}M ${s.a}A ${s.tp}TP &middot; ${s.pim} utv</span></div>`).join('')
         }</div>`;
+        kopplaLagLankar(td, p.serier);
         dr.appendChild(td);
         body.appendChild(dr);
       }
@@ -1543,14 +1555,15 @@ function renderTable(){
         filtreraPaLag(m.serier[0].lag, m.serier[0].serie);
       });
       body.appendChild(tr);
-      if (expandedRow === i && m.serier.length > 1) {
+      if (expandedRow === i) {
         const dr = document.createElement('tr');
         dr.className = 'detail-row';
         const td = document.createElement('td');
         td.colSpan = GK_COLS.length;
-        td.innerHTML = `Fördelning per serie:<div class="breakdown">${
-          m.serier.map(s => `<div class="b-row"><span class="serie">${s.serie}${s.lag !== m.lag ? ` <span class="b-lag">· ${s.lag}</span>` : ''}</span><span class="stats num">${s.gpi} GP &middot; ${s.svspct ?? '–'}% SVS &middot; ${s.gaa ?? '–'} GAA &middot; ${s.w}-${s.l} &middot; ${s.so} SO</span></div>`).join('')
+        td.innerHTML = `${m.serier.length > 1 ? 'Fördelning per serie' : 'Serie'}:<div class="breakdown">${
+          m.serier.map((s, j) => `<div class="b-row"><span class="serie">${s.serie} <a href="#" class="b-lag" data-j="${j}" title="Visa ${s.lag}">· ${s.lag}</a></span><span class="stats num">${s.gpi} GP &middot; ${s.svspct ?? '–'}% SVS &middot; ${s.gaa ?? '–'} GAA &middot; ${s.w}-${s.l} &middot; ${s.so} SO</span></div>`).join('')
         }</div>`;
+        kopplaLagLankar(td, m.serier);
         dr.appendChild(td);
         body.appendChild(dr);
       }
