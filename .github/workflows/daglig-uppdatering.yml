@@ -54,10 +54,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: main
-      - name: Samla sidans filer
+      - name: Samla sidans filer och bygg serie- och lagsidor
         run: |
           mkdir _site
-          cp -r index.html om.html favicon.svg fonts _site/
+          cp -r index.html om.html favicon.svg og.png fonts _site/
+          python3 bygg_sidor.py --ut _site
           touch _site/.nojekyll
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

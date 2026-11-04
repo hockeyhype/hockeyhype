@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<!-- Kalla till og.png (1200x630) - bilden som visas nar en lank till sidan delas.
+     Rendera om med:  msedge --headless --screenshot=og.png --window-size=1200,630 http://localhost:<port>/verktyg/delningsbild.html -->
+<link rel="stylesheet" href="../fonts/fonts.css">
+<style>
+html,body{margin:0;width:1200px;height:630px;overflow:hidden;}
+body{background:#182640;color:#fff;font-family:"Karla",sans-serif;position:relative;}
+.rand{position:absolute;left:0;top:0;bottom:0;width:18px;background:#8E2430;}
+.innehall{position:absolute;left:96px;right:96px;top:120px;}
+.wordmark{font-family:"Oswald",sans-serif;font-weight:700;font-size:150px;line-height:1;letter-spacing:-1px;}
+.wordmark .hype{color:#E0576A;}
+.wordmark .se{color:#8C97B8;font-weight:500;font-size:.5em;}
+.rubrik{margin-top:34px;font-size:40px;font-weight:600;line-height:1.25;color:#EBEEF6;}
+.etiketter{position:absolute;left:96px;bottom:84px;display:flex;gap:16px;}
+.etikett{font-family:"Oswald",sans-serif;font-weight:600;font-size:28px;padding:6px 18px;border-radius:8px;}
+.u15{background:#293B63;color:#fff;box-shadow:inset 0 0 0 2px #46598A;}
+.u16{background:#8E2430;color:#fff;}
+.u18{background:#8A6D1F;color:#fff;}
+.kalla{position:absolute;right:96px;bottom:92px;font-size:24px;color:#8C97B8;}
+</style>
+</head>
+<body>
+<div class="rand"></div>
+<div class="innehall">
+  <div class="wordmark">hockey<span class="hype">hype</span><span class="se">.se</span></div>
+  <div class="rubrik">Tabeller, resultat och statistik för<br>Stockholms ungdomshockey</div>
+</div>
+<div class="etiketter"><span class="etikett u15">U15</span><span class="etikett u16">U16</span><span class="etikett u18">U18</span></div>
+<div class="kalla">Uppdateras varje morgon</div>
+</body>
+</html>

@@ -14,6 +14,8 @@ GitHub Actions (`.github/workflows/daglig-uppdatering.yml`) kör varje morgon kl
 
 Du kan också starta en körning för hand under **Actions → Daglig uppdatering → Run workflow**.
 
+De statiska serie- och lagsidorna finns för sökmotorer. De visar bara tabeller och matcher, inga spelarnamn.
+
 Sidan speglar swehockey. Spelare eller uppgifter som tas bort där försvinner också här vid nästa körning.
 
 ## Filer
@@ -25,6 +27,10 @@ Sidan speglar swehockey. Spelare eller uppgifter som tas bort där försvinner o
 | `uppdatera.py` | Byter ut en säsongs serier i sidan mot färsk data |
 | `dagligen.py` | Kör hela uppdateringen med kontroller och sammanfattning |
 | `favicon.svg` | Ikonen i webbläsarfliken |
+| `bygg_sidor.py` | Bygger statiska sidor per serie (`/serie/<id>/`) och lag (`/lag/<namn>/`), översikten `/serier/`, `sitemap.xml` och `robots.txt` vid varje publicering |
+| `om.html` | Om sidan och integritet |
+| `og.png` | Bilden som visas när en länk delas, ritad från `verktyg/delningsbild.html` |
+| `fonts/` | Oswald och Karla (SIL Open Font License), lokala kopior så att inget hämtas från Google |
 
 Inga extra Python-bibliotek behövs.
 
