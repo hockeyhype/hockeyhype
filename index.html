@@ -25,6 +25,10 @@
   --accent-strong:#6E1B25;
   --accent-soft:#F4DEE1;
   --accent-ink:#4A1219;
+  --banner-bg:#182640;
+  --banner-hover:#22345A;
+  --banner-ink:#FFFFFF;
+  --banner-pin:#E0576A;
   --navy:#182640;
   --navy-soft:#E1E5F0;
   --u15:#293B63;
@@ -51,6 +55,10 @@
     --accent-strong:#EC7C8B;
     --accent-soft:#3B1620;
     --accent-ink:#F6C9CF;
+    --banner-bg:#3B1620;
+    --banner-hover:#4A1C28;
+    --banner-ink:#F6C9CF;
+    --banner-pin:#EC7C8B;
     --navy:#AEBEEA;
     --navy-soft:#232E52;
     --u15:#9DB0E8;
@@ -75,6 +83,10 @@
   --accent-strong:#EC7C8B;
   --accent-soft:#3B1620;
   --accent-ink:#F6C9CF;
+  --banner-bg:#3B1620;
+  --banner-hover:#4A1C28;
+  --banner-ink:#F6C9CF;
+  --banner-pin:#EC7C8B;
   --navy:#AEBEEA;
   --navy-soft:#232E52;
   --u15:#9DB0E8;
@@ -324,13 +336,13 @@ td.col-lag:hover{text-decoration:underline;text-underline-offset:2px;color:var(-
 .standings-card h4{
   display:flex;align-items:center;gap:8px;cursor:pointer;
   font-family:"Karla";font-size:13px;font-weight:700;padding:10px 12px;
-  border-bottom:1px solid var(--border);background:var(--accent-soft);color:var(--accent-ink);
+  border-bottom:1px solid var(--border);background:var(--banner-bg);color:var(--banner-ink);
   border-left:3px solid var(--accent);
 }
-.standings-card h4:hover{background:var(--accent-soft);filter:brightness(0.96);}
+.standings-card h4:hover{background:var(--banner-hover);}
 .standings-card h4 .serie-title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .standings-card h4 .serie-updated{
-  flex:none;font-size:10.5px;font-weight:600;color:var(--accent-ink);opacity:.65;white-space:nowrap;
+  flex:none;font-size:10.5px;font-weight:600;color:var(--banner-ink);opacity:.7;white-space:nowrap;
 }
 .pin-btn{
   flex:none;border:0;background:transparent;cursor:pointer;padding:0 0 0 2px;
@@ -338,6 +350,8 @@ td.col-lag:hover{text-decoration:underline;text-underline-offset:2px;color:var(-
 }
 .pin-btn:hover{opacity:1;}
 .pin-btn.active{opacity:1;color:var(--accent-strong);}
+.standings-card h4 .pin-btn{color:var(--banner-ink);}
+.standings-card h4 .pin-btn.active{color:var(--banner-pin);}
 .standings-card table{width:100%;border-collapse:collapse;min-width:0;}
 .standings-card th{
   text-align:right;font-size:10.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--text-faint);
