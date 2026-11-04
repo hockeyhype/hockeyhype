@@ -358,6 +358,7 @@ td.col-lag:hover{text-decoration:underline;text-underline-offset:2px;color:var(-
 .detail-row .breakdown{display:flex;flex-direction:column;gap:5px;margin-top:6px;}
 .detail-row .b-row{display:flex;gap:14px;align-items:baseline;}
 .detail-row .b-row .serie{flex:1;color:var(--text);font-weight:600;}
+.detail-row .b-row .b-lag{font-weight:400;color:var(--text-muted);}
 .detail-row .b-row .stats{font-variant-numeric:tabular-nums;color:var(--text-muted);}
 .malvakt-grans-row td{
   padding:7px 12px;font-size:11px;font-style:italic;color:var(--text-faint);
@@ -1213,21 +1214,47 @@ function filtreraPaSerie(g){
 /* ============================================================
    AGGREGATION
    ============================================================ */
+// En spelare kan sta under olika lagnamn i olika serier ("Värmdö HC 1" i U15, "Värmdö HC" i U16).
+// Personen kanns igen pa namn + klubb (lagnamnet utan lagnummer) + fodelsear. Saknas fodelsearet
+// pa en rad anvands det enda kanda fodelsearet for samma namn och klubb.
+function klubbAvLag(lag){ return (lag || '').replace(/\s+\d+$/, ''); }
+function personNycklar(rows){
+  const kanda = new Map();
+  rows.forEach(r => {
+    if (!r.fodelsear) return;
+    const k = r.name + '||' + klubbAvLag(r.lag);
+    if (!kanda.has(k)) kanda.set(k, new Set());
+    kanda.get(k).add(r.fodelsear);
+  });
+  return rows.map(r => {
+    const k = r.name + '||' + klubbAvLag(r.lag);
+    const ar = r.fodelsear || (kanda.get(k) && kanda.get(k).size === 1 ? [...kanda.get(k)][0] : '?');
+    return k + '||' + ar;
+  });
+}
+// Visat lag: lagnamnet om alla rader har samma, annars klubbnamnet
+function personLag(p){
+  const lagen = [...new Set(p.serier.map(s => s.lag))];
+  return lagen.length === 1 ? lagen[0] : klubbAvLag(lagen[0]);
+}
+
 function aggregatePlayers(rows){
   const map = new Map();
-  rows.forEach(r => {
-    const key = r.name+'||'+r.lag;
+  const nycklar = personNycklar(rows);
+  rows.forEach((r, i) => {
+    const key = nycklar[i];
     if (!map.has(key)) {
       map.set(key, { name:r.name, lag:r.lag, pos:new Set(), fodelsear:r.fodelsear, gp:0, g:0, a:0, tp:0, pim:0, serier:[] });
     }
     const p = map.get(key);
     p.pos.add(r.pos);
     p.gp += r.gp; p.g += r.g; p.a += r.a; p.tp += r.tp; p.pim += r.pim;
-    p.serier.push({ serie:r.serie, gp:r.gp, g:r.g, a:r.a, tp:r.tp, pim:r.pim });
+    p.serier.push({ serie:r.serie, lag:r.lag, gp:r.gp, g:r.g, a:r.a, tp:r.tp, pim:r.pim });
     if (!p.fodelsear && r.fodelsear) p.fodelsear = r.fodelsear;
   });
   return [...map.values()].map(p => ({
-    ...p, pos:[...p.pos].join('/'), pg: p.gp > 0 ? +(p.tp/p.gp).toFixed(2) : null,
+    ...p, lag:personLag(p), allaLag:p.serier.map(s => s.lag).join(' '),
+    pos:[...p.pos].join('/'), pg: p.gp > 0 ? +(p.tp/p.gp).toFixed(2) : null,
   }));
 }
 
@@ -1278,8 +1305,9 @@ function sekunderTillMip(sek){
 
 function aggregateGoalkeepers(rows){
   const map = new Map();
-  rows.forEach(r => {
-    const key = r.name+'||'+r.lag;
+  const nycklar = personNycklar(rows);
+  rows.forEach((r, i) => {
+    const key = nycklar[i];
     if (!map.has(key)) {
       map.set(key, { name:r.name, lag:r.lag, fodelsear:r.fodelsear, gpi:0, mipSek:0, ga:0, svs:0, sog:0, so:0, w:0, l:0, serier:[] });
     }
@@ -1287,14 +1315,14 @@ function aggregateGoalkeepers(rows){
     const mipSek = mipTillSekunder(r.mip);
     m.gpi += r.gpi; m.mipSek += mipSek; m.ga += r.ga; m.svs += r.svs; m.sog += r.sog; m.so += r.so; m.w += r.w; m.l += r.l;
     m.serier.push({
-      serie:r.serie, gpi:r.gpi, mip:r.mip, ga:r.ga, svs:r.svs, sog:r.sog, so:r.so, w:r.w, l:r.l,
+      serie:r.serie, lag:r.lag, gpi:r.gpi, mip:r.mip, ga:r.ga, svs:r.svs, sog:r.sog, so:r.so, w:r.w, l:r.l,
       svspct: r.sog > 0 ? +(r.svs/r.sog*100).toFixed(2) : null,
       gaa: mipSek > 0 ? +(r.ga*3600/mipSek).toFixed(2) : null,
     });
     if (!m.fodelsear && r.fodelsear) m.fodelsear = r.fodelsear;
   });
   return [...map.values()].map(m => ({
-    ...m,
+    ...m, lag:personLag(m), allaLag:m.serier.map(s => s.lag).join(' '),
     mip: sekunderTillMip(m.mipSek),
     svspct: m.sog > 0 ? +(m.svs/m.sog*100).toFixed(2) : null,
     gaa: m.mipSek > 0 ? +(m.ga*3600/m.mipSek).toFixed(2) : null,
@@ -1415,7 +1443,7 @@ function renderTable(){
 
   if (currentView === 'spelare') {
     renderHead(PLAYER_COLS);
-    let players = aggregatePlayers(rowsRaw).filter(p => matchesSearch(p.name) || matchesSearch(p.lag));
+    let players = aggregatePlayers(rowsRaw).filter(p => matchesSearch(p.name) || matchesSearch(p.allaLag));
     players = sortSpelare(players);
     if (players.length === 0) { showEmpty(); updateSummary(0,0); return; }
     const visaSpelareGrans = spelareKravMinstaGP();
@@ -1451,7 +1479,7 @@ function renderTable(){
       });
       tr.querySelector('.col-lag').addEventListener('click', e => {
         e.stopPropagation();
-        filtreraPaLag(p.lag, p.serier[0] && p.serier[0].serie);
+        filtreraPaLag(p.serier[0].lag, p.serier[0].serie);
       });
       body.appendChild(tr);
       if (expandedRow === i && p.serier.length > 1) {
@@ -1460,7 +1488,7 @@ function renderTable(){
         const td = document.createElement('td');
         td.colSpan = PLAYER_COLS.length;
         td.innerHTML = `Fördelning per serie:<div class="breakdown">${
-          p.serier.map(s => `<div class="b-row"><span class="serie">${s.serie}</span><span class="stats num">${s.gp} GP &middot; ${s.g}M ${s.a}A ${s.tp}TP &middot; ${s.pim} utv</span></div>`).join('')
+          p.serier.map(s => `<div class="b-row"><span class="serie">${s.serie}${s.lag !== p.lag ? ` <span class="b-lag">· ${s.lag}</span>` : ''}</span><span class="stats num">${s.gp} GP &middot; ${s.g}M ${s.a}A ${s.tp}TP &middot; ${s.pim} utv</span></div>`).join('')
         }</div>`;
         dr.appendChild(td);
         body.appendChild(dr);
@@ -1474,7 +1502,7 @@ function renderTable(){
   } else if (currentView === 'malvakt') {
     renderHead(GK_COLS);
     const gkRowsRaw = getFilteredGkRows();
-    let malvakter = aggregateGoalkeepers(gkRowsRaw).filter(m => matchesSearch(m.name) || matchesSearch(m.lag));
+    let malvakter = aggregateGoalkeepers(gkRowsRaw).filter(m => matchesSearch(m.name) || matchesSearch(m.allaLag));
     malvakter = sortMalvakter(malvakter);
     if (malvakter.length === 0) { showEmpty(); updateSummary(0,0); return; }
     const visaGrans = malvaktKravMinstaGP();
@@ -1512,7 +1540,7 @@ function renderTable(){
       });
       tr.querySelector('.col-lag').addEventListener('click', e => {
         e.stopPropagation();
-        filtreraPaLag(m.lag, m.serier[0] && m.serier[0].serie);
+        filtreraPaLag(m.serier[0].lag, m.serier[0].serie);
       });
       body.appendChild(tr);
       if (expandedRow === i && m.serier.length > 1) {
@@ -1521,7 +1549,7 @@ function renderTable(){
         const td = document.createElement('td');
         td.colSpan = GK_COLS.length;
         td.innerHTML = `Fördelning per serie:<div class="breakdown">${
-          m.serier.map(s => `<div class="b-row"><span class="serie">${s.serie}</span><span class="stats num">${s.gpi} GP &middot; ${s.svspct ?? '–'}% SVS &middot; ${s.gaa ?? '–'} GAA &middot; ${s.w}-${s.l} &middot; ${s.so} SO</span></div>`).join('')
+          m.serier.map(s => `<div class="b-row"><span class="serie">${s.serie}${s.lag !== m.lag ? ` <span class="b-lag">· ${s.lag}</span>` : ''}</span><span class="stats num">${s.gpi} GP &middot; ${s.svspct ?? '–'}% SVS &middot; ${s.gaa ?? '–'} GAA &middot; ${s.w}-${s.l} &middot; ${s.so} SO</span></div>`).join('')
         }</div>`;
         dr.appendChild(td);
         body.appendChild(dr);
@@ -1795,7 +1823,7 @@ function byggSeriePoanglista(){
   // lag, inte nagot en pagaende sokning ska kunna kringga.
   const rowsRaw = getFilteredRows(true);
   const spelare = aggregatePlayers(rowsRaw)
-    .filter(p => matchesSearch(p.name) || matchesSearch(p.lag))
+    .filter(p => matchesSearch(p.name) || matchesSearch(p.allaLag))
     .sort((a,b) => (b.tp - a.tp) || (b.g - a.g));
 
   if (spelare.length === 0) {
@@ -1833,7 +1861,7 @@ function byggSeriePoanglista(){
       <td class="num-col num">${p.pg ?? '–'}</td>
       <td class="num-col num">${p.pim}</td>
     `;
-    tr.querySelector('.col-lag').addEventListener('click', e => { e.stopPropagation(); filtreraPaLag(p.lag, p.serier[0] && p.serier[0].serie); });
+    tr.querySelector('.col-lag').addEventListener('click', e => { e.stopPropagation(); filtreraPaLag(p.serier[0].lag, p.serier[0].serie); });
     tbody.appendChild(tr);
   });
   table.appendChild(tbody);
