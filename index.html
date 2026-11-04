@@ -2074,11 +2074,24 @@ function autoVaxlaVyForSokning(){
 }
 
 searchInputEl.addEventListener('input', e => {
+  sokNavigering = true;
   search = e.target.value.trim();
   searchBoxEl.classList.toggle('has-value', e.target.value.length > 0);
   expandedRow = null;
+  // Serie- och lagvyn visar bara en serie eller ett lag (via filtren). Borjar man soka darifran
+  // galler sokningen hela sidan: filtren nollstalls och vyn valjs efter vad sokningen traffar.
+  // Bakatknappen tar en tillbaka till serien eller laget.
+  if (search && (currentView === 'serie' || currentView === 'lagdetalj')) {
+    resetFilters();
+    bytVy('tabell');
+    autoVaxlaVyForSokning();
+    renderAll();
+    sokNavigering = false;
+    return;
+  }
   autoVaxlaVyForSokning();
   renderTable();
+  sokNavigering = false;
 });
 document.getElementById('clearSearchBtn').addEventListener('click', () => {
   searchInputEl.value = '';
@@ -2167,6 +2180,7 @@ function renderAll(){
      #2025-26/...         annan sasong an den senaste
    ============================================================ */
 var aterstaller = false;
+var sokNavigering = false; // sant medan en tangenttryckning i sokrutan ritar om sidan
 function tillstand(){
   return { hockeyhype:1, season:currentSeason, view:currentView, fokusLag, fokusSerie,
     excluded:[...excluded], excludedSeries:[...excludedSeries], excludedKategori:[...excludedKategori],
@@ -2197,7 +2211,10 @@ function syncHistorik(){
   if (aterstaller) return;
   const s = tillstand();
   try {
-    if (history.state && history.state.hockeyhype && navNyckel(history.state) !== navNyckel(s)) history.pushState(s, '', adressFor(s));
+    // En pagaende sokning ar ett enda steg: vybyten medan man skriver ersatter steget i stallet
+    // for att lagga till nya, sa att bakat gar tillbaka till dar sokningen borjade
+    const sammaSokning = sokNavigering && history.state && history.state.search && s.search;
+    if (history.state && history.state.hockeyhype && navNyckel(history.state) !== navNyckel(s) && !sammaSokning) history.pushState(s, '', adressFor(s));
     else history.replaceState(s, '', adressFor(s));
   } catch (e) { /* historiken ar inte tillganglig (t.ex. i en inbaddad forhandsvisning) */ }
 }
