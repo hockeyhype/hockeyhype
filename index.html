@@ -2101,10 +2101,16 @@ function renderAll(){
 }
 
 /* ============================================================
-   HISTORIK - webblasarens bakatknapp gar tillbaka ett steg pa sidan
-   (vy, sasong, lag eller serie) i stallet for att lamna den. Mindre
+   HISTORIK OCH ADRESS - webblasarens bakatknapp gar tillbaka ett steg pa
+   sidan (vy, sasong, lag eller serie) i stallet for att lamna den. Mindre
    andringar (filter, sortering, sokning) sparas i det aktuella steget
    sa att man inte behover klicka bakat for varje kryss.
+   Adressen speglar vyn sa att den gar att dela:
+     (ingen #)            Tabell, senaste sasongen
+     #spelare #lag #malvakt
+     #serie/<id>          en serie (id fran swehockey-adressen)
+     #lag/<id>/<lagnamn>  ett lag i en serie
+     #2025-26/...         annan sasong an den senaste
    ============================================================ */
 var aterstaller = false;
 function tillstand(){
@@ -2118,17 +2124,47 @@ function navNyckel(s){
   return JSON.stringify([s.season, s.view, s.fokusLag, s.fokusSerie,
     s.view === 'serie' ? [s.excludedSeries, s.excludedKategori] : null]);
 }
+function adressFor(s){
+  const delar = [];
+  if (s.season !== seasonList()[0]) delar.push(s.season);
+  const grupper = RAW[s.season].grupper;
+  if (s.view === 'serie') {
+    const valda = grupper.filter(g => !s.excludedKategori.includes(g.kategori) && !s.excludedSeries.includes(g.serie));
+    if (valda.length === 1) delar.push('serie', valda[0].id);
+  } else if (s.view === 'lagdetalj') {
+    const g = grupper.find(x => x.serie === s.fokusSerie);
+    if (g && s.fokusLag) delar.push('lag', g.id, encodeURIComponent(s.fokusLag));
+  } else if (s.view !== 'tabell') {
+    delar.push(s.view);
+  }
+  return delar.length ? '#' + delar.join('/') : location.pathname + location.search;
+}
 function syncHistorik(){
   if (aterstaller) return;
   const s = tillstand();
   try {
-    if (history.state && history.state.hockeyhype && navNyckel(history.state) !== navNyckel(s)) history.pushState(s, '');
-    else history.replaceState(s, '');
+    if (history.state && history.state.hockeyhype && navNyckel(history.state) !== navNyckel(s)) history.pushState(s, '', adressFor(s));
+    else history.replaceState(s, '', adressFor(s));
   } catch (e) { /* historiken ar inte tillganglig (t.ex. i en inbaddad forhandsvisning) */ }
+}
+// Oppnar vyn som adressen pekar ut - vid sidladdning och om nagon andrar adressen for hand
+function tillampaAdress(){
+  const delar = location.hash.replace(/^#\/?/, '').split('/').filter(Boolean).map(d => {
+    try { return decodeURIComponent(d); } catch (e) { return d; }
+  });
+  resetFilters();
+  search = ''; searchInputEl.value = ''; searchBoxEl.classList.remove('has-value');
+  currentSeason = delar[0] && RAW[delar[0]] ? delar.shift() : seasonList()[0];
+  const [vy, id, lagNamn] = delar;
+  const g = id && seasonData().grupper.find(x => x.id === id);
+  if (vy === 'serie' && g) return filtreraPaSerie(g);
+  if (vy === 'lag' && g && lagNamn) return filtreraPaLag(lagNamn, g.serie);
+  bytVy(['lag', 'spelare', 'malvakt'].includes(vy) ? vy : 'tabell');
+  renderAll();
 }
 window.addEventListener('popstate', e => {
   const s = e.state;
-  if (!s || !s.hockeyhype) return;
+  if (!s || !s.hockeyhype) { tillampaAdress(); return; }
   aterstaller = true;
   currentSeason = s.season; currentView = s.view;
   fokusLag = s.fokusLag; fokusSerie = s.fokusSerie;
@@ -2144,7 +2180,8 @@ window.addEventListener('popstate', e => {
   aterstaller = false;
 });
 
-renderAll();
+if (location.hash.length > 1) tillampaAdress();
+else renderAll();
 </script>
 
 </body></html>
