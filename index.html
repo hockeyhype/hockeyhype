@@ -35,6 +35,8 @@
   --rail-hover:#22345A;
   --thead-bg:#F4DEE1;
   --thead-soft:#FAEDEF;
+  --thead-ink:#182640;
+  --thead-soft-ink:#182640;
   --u15-chip-bg:#293B63;--u15-chip-ink:#FFFFFF;
   --u16-chip-bg:#8E2430;--u16-chip-ink:#FFFFFF;
   --u18-chip-bg:#8A6D1F;--u18-chip-ink:#FFFFFF;
@@ -74,6 +76,8 @@
     --rail-hover:var(--surface-2);
     --thead-bg:var(--surface-2);
     --thead-soft:transparent;
+    --thead-ink:var(--text-muted);
+    --thead-soft-ink:var(--text-faint);
     --u15-chip-bg:var(--u15-soft);--u15-chip-ink:var(--u15);
     --u16-chip-bg:var(--u16-soft);--u16-chip-ink:var(--u16);
     --u18-chip-bg:var(--u18-soft);--u18-chip-ink:var(--u18);
@@ -111,6 +115,8 @@
   --rail-hover:var(--surface-2);
   --thead-bg:var(--surface-2);
   --thead-soft:transparent;
+  --thead-ink:var(--text-muted);
+  --thead-soft-ink:var(--text-faint);
   --u15-chip-bg:var(--u15-soft);--u15-chip-ink:var(--u15);
   --u16-chip-bg:var(--u16-soft);--u16-chip-ink:var(--u16);
   --u18-chip-bg:var(--u18-soft);--u18-chip-ink:var(--u18);
@@ -309,7 +315,7 @@ button{font:inherit;color:inherit;}
 table{width:100%;border-collapse:collapse;min-width:640px;}
 thead th{
   position:sticky;top:0;background:var(--thead-bg);z-index:1;
-  text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);
+  text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--thead-ink);
   font-family:"Karla";font-weight:700;padding:10px 12px;border-bottom:2px solid var(--accent);
   cursor:pointer;white-space:nowrap;user-select:none;
 }
@@ -365,7 +371,7 @@ td.col-lag:hover{text-decoration:underline;text-underline-offset:2px;color:var(-
   background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;
 }
 .standings-card h4{
-  display:flex;align-items:center;gap:8px;cursor:pointer;
+  display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;
   font-family:"Karla";font-size:13px;font-weight:700;padding:10px 12px;
   border-bottom:1px solid var(--border);background:var(--banner-bg);color:var(--banner-ink);
   border-left:3px solid var(--accent);
@@ -385,7 +391,7 @@ td.col-lag:hover{text-decoration:underline;text-underline-offset:2px;color:var(-
 .standings-card h4 .pin-btn.active{color:var(--banner-pin);}
 .standings-card table{width:100%;border-collapse:collapse;min-width:0;}
 .standings-card th{
-  text-align:right;font-size:10.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--text-faint);
+  text-align:right;font-size:10.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--thead-soft-ink);
   font-weight:700;padding:6px 8px;background:var(--thead-soft);
 }
 .standings-card th:first-child,.standings-card th:nth-child(2){text-align:left;}
