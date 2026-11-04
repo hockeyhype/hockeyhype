@@ -1387,6 +1387,7 @@ function sortSpelare(rows){
 }
 
 function renderTable(){
+  syncHistorik();
   document.getElementById('tableCard').hidden = currentView === 'tabell' || currentView === 'serie' || currentView === 'lagdetalj';
   document.getElementById('standingsSection').hidden = currentView !== 'tabell';
   document.getElementById('serieSection').hidden = currentView !== 'serie';
@@ -2098,6 +2099,51 @@ function renderAll(){
   document.getElementById('bottomBarFooter').textContent = `Uppdaterad ${formatDatumKort(seasonData().uppdaterad)} · Källa: Swehockey`;
   syncTopbarHeight();
 }
+
+/* ============================================================
+   HISTORIK - webblasarens bakatknapp gar tillbaka ett steg pa sidan
+   (vy, sasong, lag eller serie) i stallet for att lamna den. Mindre
+   andringar (filter, sortering, sokning) sparas i det aktuella steget
+   sa att man inte behover klicka bakat for varje kryss.
+   ============================================================ */
+var aterstaller = false;
+function tillstand(){
+  return { hockeyhype:1, season:currentSeason, view:currentView, fokusLag, fokusSerie,
+    excluded:[...excluded], excludedSeries:[...excludedSeries], excludedKategori:[...excludedKategori],
+    excludedFodelsear:[...excludedFodelsear], excludedPosition:[...excludedPosition],
+    search, sortKey, sortDir };
+}
+function navNyckel(s){
+  // Serie-vyn visar den serie som filtren pekar ut - byte av serie ar ocksa ett nytt steg
+  return JSON.stringify([s.season, s.view, s.fokusLag, s.fokusSerie,
+    s.view === 'serie' ? [s.excludedSeries, s.excludedKategori] : null]);
+}
+function syncHistorik(){
+  if (aterstaller) return;
+  const s = tillstand();
+  try {
+    if (history.state && history.state.hockeyhype && navNyckel(history.state) !== navNyckel(s)) history.pushState(s, '');
+    else history.replaceState(s, '');
+  } catch (e) { /* historiken ar inte tillganglig (t.ex. i en inbaddad forhandsvisning) */ }
+}
+window.addEventListener('popstate', e => {
+  const s = e.state;
+  if (!s || !s.hockeyhype) return;
+  aterstaller = true;
+  currentSeason = s.season; currentView = s.view;
+  fokusLag = s.fokusLag; fokusSerie = s.fokusSerie;
+  excluded = new Set(s.excluded); excludedSeries = new Set(s.excludedSeries);
+  excludedKategori = new Set(s.excludedKategori); excludedFodelsear = new Set(s.excludedFodelsear);
+  excludedPosition = new Set(s.excludedPosition);
+  search = s.search || ''; sortKey = s.sortKey; sortDir = s.sortDir; expandedRow = null;
+  searchInputEl.value = search;
+  searchBoxEl.classList.toggle('has-value', search.length > 0);
+  document.querySelectorAll('.dropdown.open').forEach(d => d.classList.remove('open'));
+  document.querySelectorAll('.view-toggle button').forEach(b => b.classList.toggle('active', b.dataset.view === currentView));
+  renderAll();
+  aterstaller = false;
+});
+
 renderAll();
 </script>
 
