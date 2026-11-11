@@ -6,7 +6,12 @@ Hela sidan är en enda fil, `index.html`. Datan ligger inbäddad i den (`const R
 
 ## Daglig uppdatering
 
-GitHub Actions (`.github/workflows/daglig-uppdatering.yml`) kör varje morgon klockan 05:00 UTC, det vill säga 06:00 vintertid och 07:00 sommartid:
+GitHub Actions (`.github/workflows/daglig-uppdatering.yml`) kör två gånger om dagen:
+
+- **Morgon:** 05:00 UTC, det vill säga 06:00 vintertid och 07:00 sommartid.
+- **Kväll:** 22:00 svensk tid på vardagar och 20:00 på helger, året runt. Båda UTC-timmarna schemaläggs, och steget "Kontrollera tiden" släpper bara igenom den som motsvarar rätt svensk tid.
+
+Varje körning:
 
 1. `dagligen.py --sida index.html` hämtar alla serier under säsong 2026-27 och kontrollerar att inget ser trasigt ut. Följande stoppar körningen: färre spelade matcher än förut, färre än 80 % av spelarna eller färre lag i tabellen.
 2. Om datan ser rimlig ut sparas `index.html` och sidan publiceras på GitHub Pages.

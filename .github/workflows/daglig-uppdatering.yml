@@ -1,10 +1,16 @@
-# Hämtar färsk data från stats.swehockey.se varje morgon, sparar index.html och publicerar sidan.
+# Hämtar färsk data från stats.swehockey.se varje morgon och kväll, sparar index.html och publicerar sidan.
 # Körs även vid push till main (publicerar bara) och kan startas för hand under Actions -> Run workflow.
 name: Daglig uppdatering
 
 on:
   schedule:
-    - cron: "0 5 * * *"   # 05:00 UTC = 06:00 vintertid / 07:00 sommartid
+    - cron: "0 5 * * *"     # morgon: 05:00 UTC = 06:00 vintertid / 07:00 sommartid
+    # Kväll: kl 22 svensk tid på vardagar och kl 20 på helger. GitHub räknar i UTC utan sommartid,
+    # så båda UTC-timmarna schemaläggs och steget "Kontrollera tiden" släpper bara igenom den rätta.
+    - cron: "0 20 * * 1-5"  # 22:00 sommartid
+    - cron: "0 21 * * 1-5"  # 22:00 vintertid
+    - cron: "0 18 * * 0,6"  # 20:00 sommartid
+    - cron: "0 19 * * 0,6"  # 20:00 vintertid
   workflow_dispatch:
   push:
     branches: [main]
@@ -21,14 +27,35 @@ jobs:
       contents: write
     env:
       TZ: Europe/Stockholm
+    outputs:
+      kor: ${{ steps.tid.outputs.kor }}
     steps:
+      - name: Kontrollera tiden
+        id: tid
+        env:
+          SCHEMA: ${{ github.event.schedule }}
+        run: |
+          kor=true
+          if [ "${{ github.event_name }}" = schedule ] && [ "$SCHEMA" != "0 5 * * *" ]; then
+            utc=$(echo "$SCHEMA" | awk '{print $2}')
+            forskjutning=$((10#$(date +%z | cut -c2-3)))   # 1 vintertid, 2 sommartid
+            lokal=$((utc + forskjutning))
+            if [ "$(date +%u)" -le 5 ]; then onskad=22; else onskad=20; fi
+            [ "$lokal" -eq "$onskad" ] || kor=false
+            echo "Schema $SCHEMA = kl $lokal svensk tid, kvällskörningen ska vara kl $onskad: kör=$kor"
+          fi
+          echo "kor=$kor" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@v4
+        if: steps.tid.outputs.kor == 'true'
       - uses: actions/setup-python@v5
+        if: steps.tid.outputs.kor == 'true'
         with:
           python-version: "3.12"
       - name: Hämta data och uppdatera sidan
+        if: steps.tid.outputs.kor == 'true'
         run: python dagligen.py --sida index.html
       - name: Spara ändringar
+        if: steps.tid.outputs.kor == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -36,7 +63,7 @@ jobs:
           if git diff --staged --quiet; then
             echo "Inga ändringar."
           else
-            git commit -m "Daglig uppdatering $(date +%F)"
+            git commit -m "Daglig uppdatering $(date '+%F %H:%M')"
             git push
           fi
 
@@ -45,7 +72,7 @@ jobs:
   # publiceringen inte hittade paketet.
   bygg:
     needs: uppdatera
-    if: ${{ !failure() && !cancelled() }}
+    if: ${{ !failure() && !cancelled() && needs.uppdatera.outputs.kor != 'false' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
