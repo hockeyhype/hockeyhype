@@ -40,16 +40,15 @@ jobs:
             git push
           fi
 
-  publicera:
+  # Bygget och publiceringen ar separata jobb (som i GitHubs egen mall): da hinner det uppladdade
+  # paketet registreras innan publiceringen letar efter det. I samma jobb hande det 2026-11-11 att
+  # publiceringen inte hittade paketet.
+  bygg:
     needs: uppdatera
     if: ${{ !failure() && !cancelled() }}
     runs-on: ubuntu-latest
     permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
+      contents: read
     steps:
       - uses: actions/checkout@v4
         with:
@@ -64,5 +63,17 @@ jobs:
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
+
+  publicera:
+    needs: bygg
+    if: ${{ !failure() && !cancelled() }}
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
       - id: deploy
         uses: actions/deploy-pages@v4
