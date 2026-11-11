@@ -382,6 +382,10 @@ td.col-lag:hover{text-decoration:underline;text-underline-offset:2px;color:var(-
 .detail-row .b-row .serie{flex:1;color:var(--text);font-weight:600;}
 .detail-row .b-row .b-lag{font-weight:600;color:var(--accent-strong);text-decoration:none;}
 .detail-row .b-row .b-lag:hover{text-decoration:underline;text-underline-offset:2px;}
+.urval-lag{display:flex;flex-direction:column;align-items:center;gap:6px;margin-top:14px;}
+.urval-lag a{font-weight:600;color:var(--accent-strong);text-decoration:none;}
+.urval-lag a:hover{text-decoration:underline;text-underline-offset:2px;}
+.urval-lag a span{font-weight:400;color:var(--text-muted);}
 .detail-row .b-row .stats{font-variant-numeric:tabular-nums;color:var(--text-muted);}
 .malvakt-grans-row td{
   padding:7px 12px;font-size:11px;font-style:italic;color:var(--text-faint);
@@ -1430,7 +1434,10 @@ function renderHead(cols){
     if (c.sortable !== false) {
       if (c.key === sortKey) th.classList.add('sorted');
       th.addEventListener('click', () => {
-        if (sortKey === c.key) sortDir *= -1; else { sortKey = c.key; sortDir = -1; }
+        const last = (currentView === 'spelare' || currentView === 'malvakt') && c.num && c.key !== 'fodelsear';
+        if (last) { sortKey = c.key; sortDir = BASTA_FORST_STIGANDE.has(c.key) ? 1 : -1; }
+        else if (sortKey === c.key) sortDir *= -1;
+        else { sortKey = c.key; sortDir = -1; }
         renderTable();
       });
     }
@@ -1447,6 +1454,45 @@ function sortRows(rows){
   });
 }
 
+// Hansyn till barnen: topplistorna (Spelare, Malvakt, seriens poangliga) visar bara spelare med
+// minst en poang och malvakter med minst 85 % raddningsprocent, och statistikkolumnerna sorteras
+// alltid med basta forst - det ska inte ga att ta fram en "samst forst"-lista. Lagets egen sida
+// visar hela truppen.
+const SPELARE_MIN_TP = 1;
+const MALVAKT_MIN_SVSPCT = 85;
+const BASTA_FORST_STIGANDE = new Set(['gaa', 'ga', 'l', 'pim']); // lagre ar battre
+const URVAL_SPELARE = 'Visar spelare med minst en poäng. Hela truppen finns på respektive lags sida – klicka på laget.';
+const URVAL_MALVAKTER = `Visar målvakter med minst ${MALVAKT_MIN_SVSPCT} % räddningsprocent. Alla målvakter finns på respektive lags sida – klicka på laget.`;
+function urvalsRad(body, colspan, text){
+  const tr = document.createElement('tr');
+  tr.className = 'malvakt-grans-row';
+  const td = document.createElement('td');
+  td.colSpan = colspan;
+  td.textContent = text;
+  tr.appendChild(td);
+  body.appendChild(tr);
+}
+// Sokningen traffade bara spelare utanfor topplistan: visa lagen de spelar i som lankar
+function showEmptyUrval(text, traffar){
+  const body = document.getElementById('bodyRows');
+  const tr = document.createElement('tr');
+  const td = document.createElement('td');
+  td.colSpan = 12;
+  const lag = [];
+  traffar.forEach(p => p.serier.forEach(s => {
+    if (!lag.some(l => l.lag === s.lag && l.serie === s.serie)) lag.push({ lag:s.lag, serie:s.serie });
+  }));
+  td.innerHTML = `<div class="empty-state"><div class="big">Inga träffar i topplistan</div>${text}` +
+    (lag.length && lag.length <= 8 ? `<div class="urval-lag">${lag.map((l, j) =>
+      `<a href="#" class="b-lag" data-j="${j}">${l.lag} <span>· ${l.serie}</span></a>`).join('')}</div>` : '') + `</div>`;
+  td.querySelectorAll('.urval-lag a').forEach(a => a.addEventListener('click', e => {
+    e.preventDefault();
+    const l = lag[+a.dataset.j];
+    filtreraPaLag(l.lag, l.serie);
+  }));
+  tr.appendChild(td);
+  body.appendChild(tr);
+}
 const MALVAKT_MIN_GP = 5; // farre matcher an sa ar for fa for att SVS%/GAA ska saga nagot
 function malvaktKravMinstaGP(){
   // SVS% och GAA blir missvisande pa ett par matcher (en ensam shutout kan skjuta en
@@ -1488,9 +1534,9 @@ function renderTable(){
 
   if (currentView === 'spelare') {
     renderHead(PLAYER_COLS);
-    let players = aggregatePlayers(rowsRaw).filter(p => matchesSearch(p.name) || matchesSearch(p.allaLag));
-    players = sortSpelare(players);
-    if (players.length === 0) { showEmpty(); updateSummary(0,0); return; }
+    const sokta = aggregatePlayers(rowsRaw).filter(p => matchesSearch(p.name) || matchesSearch(p.allaLag));
+    let players = sortSpelare(sokta.filter(p => p.tp >= SPELARE_MIN_TP));
+    if (players.length === 0) { sokta.length ? showEmptyUrval(URVAL_SPELARE, sokta) : showEmpty(); updateSummary(0,0); return; }
     const visaSpelareGrans = spelareKravMinstaGP();
     let spelareGransVisad = false;
     players.forEach((p, i) => {
@@ -1540,6 +1586,7 @@ function renderTable(){
         body.appendChild(dr);
       }
     });
+    urvalsRad(body, PLAYER_COLS.length, URVAL_SPELARE);
     // Summeringen (Lag/Serier) ska spegla TRAFFARNA, inte hela det ofiltrerade universum
     // som getFilteredRows() nu kan returnera medan man soker - darfor smalnas rowsRaw av
     // med samma sokvillkor som spelarna redan filtrerats med.
@@ -1548,9 +1595,9 @@ function renderTable(){
   } else if (currentView === 'malvakt') {
     renderHead(GK_COLS);
     const gkRowsRaw = getFilteredGkRows();
-    let malvakter = aggregateGoalkeepers(gkRowsRaw).filter(m => matchesSearch(m.name) || matchesSearch(m.allaLag));
-    malvakter = sortMalvakter(malvakter);
-    if (malvakter.length === 0) { showEmpty(); updateSummary(0,0); return; }
+    const soktaMv = aggregateGoalkeepers(gkRowsRaw).filter(m => matchesSearch(m.name) || matchesSearch(m.allaLag));
+    let malvakter = sortMalvakter(soktaMv.filter(m => m.svspct !== null && m.svspct >= MALVAKT_MIN_SVSPCT));
+    if (malvakter.length === 0) { soktaMv.length ? showEmptyUrval(URVAL_MALVAKTER, soktaMv) : showEmpty(); updateSummary(0,0); return; }
     const visaGrans = malvaktKravMinstaGP();
     let gransVisad = false;
     malvakter.forEach((m, i) => {
@@ -1602,6 +1649,7 @@ function renderTable(){
         body.appendChild(dr);
       }
     });
+    urvalsRad(body, GK_COLS.length, URVAL_MALVAKTER);
     const gkRowsRawSokt = search ? gkRowsRaw.filter(r => matchesSearch(r.name) || matchesSearch(r.lag)) : gkRowsRaw;
     updateSummary(malvakter.length, new Set(gkRowsRawSokt.map(r=>r.lag)).size, gkRowsRawSokt);
   } else {
@@ -1856,7 +1904,8 @@ function byggSerieTabellKort(g){
   return card;
 }
 
-function byggSeriePoanglista(){
+// topplista=true (serievyn): bara spelare med minst en poang. Lagvyn visar hela truppen.
+function byggSeriePoanglista(topplista){
   const wrap = document.createElement('div');
   wrap.className = 'serie-vy-poanglista';
   const h3 = document.createElement('h3');
@@ -1871,6 +1920,7 @@ function byggSeriePoanglista(){
   const rowsRaw = getFilteredRows(true);
   const spelare = aggregatePlayers(rowsRaw)
     .filter(p => matchesSearch(p.name) || matchesSearch(p.allaLag))
+    .filter(p => !topplista || p.tp >= SPELARE_MIN_TP)
     .sort((a,b) => (b.tp - a.tp) || (b.g - a.g));
 
   if (spelare.length === 0) {
@@ -1915,6 +1965,12 @@ function byggSeriePoanglista(){
   scroll.appendChild(table);
   card.appendChild(scroll);
   wrap.appendChild(card);
+  if (topplista) {
+    const not = document.createElement('div');
+    not.className = 'empty-hint';
+    not.textContent = URVAL_SPELARE;
+    wrap.appendChild(not);
+  }
   return { el: wrap, antal: spelare.length, rowsRaw };
 }
 
@@ -1959,7 +2015,7 @@ function renderSerieVy(){
   const spelade = ((g.matcher && g.matcher.spelade) || []).slice(0, 5);
   if (spelade.length > 0) el.appendChild(byggMatchSektion('Senaste resultat', spelade, true));
 
-  const { el: poangEl, antal, rowsRaw } = byggSeriePoanglista();
+  const { el: poangEl, antal, rowsRaw } = byggSeriePoanglista(true);
   el.appendChild(poangEl);
 
   updateSummary(antal, 0, rowsRaw);
