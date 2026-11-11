@@ -1,0 +1,469 @@
+{
+ "sasong": "2026-27",
+ "distrikt": {
+  "Stockholm": {
+   "region": "Öst",
+   "grupper": [
+    {
+     "id": "21450",
+     "serie": "U16P Blå Grupp 1",
+     "kategori": "U16P",
+     "endast_tabell": false
+    },
+    {
+     "id": "21451",
+     "serie": "U16P Blå grupp 2",
+     "kategori": "U16P",
+     "endast_tabell": false
+    },
+    {
+     "id": "21454",
+     "serie": "U16P Kvalserie till Grupp A",
+     "kategori": "U16P",
+     "endast_tabell": false
+    },
+    {
+     "id": "21452",
+     "serie": "U16P Röd grupp 1",
+     "kategori": "U16P",
+     "endast_tabell": false
+    },
+    {
+     "id": "21453",
+     "serie": "U16P Röd grupp 2",
+     "kategori": "U16P",
+     "endast_tabell": false
+    },
+    {
+     "id": "22199",
+     "serie": "U16P DM Blå Grupp 1",
+     "kategori": "U16P",
+     "endast_tabell": false
+    },
+    {
+     "id": "22200",
+     "serie": "U16P DM Blå Grupp 2",
+     "kategori": "U16P",
+     "endast_tabell": false
+    },
+    {
+     "id": "22201",
+     "serie": "U16P DM Blå Grupp 3",
+     "kategori": "U16P",
+     "endast_tabell": false
+    },
+    {
+     "id": "22202",
+     "serie": "U16P DM Blå Grupp 4",
+     "kategori": "U16P",
+     "endast_tabell": false
+    },
+    {
+     "id": "22204",
+     "serie": "U16P DM Finalspel Topp 4",
+     "kategori": "U16P",
+     "endast_tabell": false
+    },
+    {
+     "id": "22206",
+     "serie": "U16P DM Placeringsmatcher",
+     "kategori": "U16P",
+     "endast_tabell": false
+    },
+    {
+     "id": "22203",
+     "serie": "U16P DM Röd Grupp",
+     "kategori": "U16P",
+     "endast_tabell": false
+    },
+    {
+     "id": "22207",
+     "serie": "U16F DM Grupp 1",
+     "kategori": "U16F",
+     "endast_tabell": false
+    },
+    {
+     "id": "22208",
+     "serie": "U16F DM Grupp 2",
+     "kategori": "U16F",
+     "endast_tabell": false
+    },
+    {
+     "id": "22209",
+     "serie": "U16F DM placeringsmatcher",
+     "kategori": "U16F",
+     "endast_tabell": false
+    },
+    {
+     "id": "22210",
+     "serie": "U16F DM slutspel Topp 4",
+     "kategori": "U16F",
+     "endast_tabell": false
+    },
+    {
+     "id": "21494",
+     "serie": "U16F grupp blå",
+     "kategori": "U16F",
+     "endast_tabell": false
+    },
+    {
+     "id": "21495",
+     "serie": "U16F grupp röd",
+     "kategori": "U16F",
+     "endast_tabell": false
+    },
+    {
+     "id": "21496",
+     "serie": "U16F kval till Grupp A",
+     "kategori": "U16F",
+     "endast_tabell": false
+    },
+    {
+     "id": "22216",
+     "serie": "U15P DM Blå Grupp 1",
+     "kategori": "U15P",
+     "endast_tabell": false
+    },
+    {
+     "id": "22217",
+     "serie": "U15P DM Blå Grupp 2",
+     "kategori": "U15P",
+     "endast_tabell": false
+    },
+    {
+     "id": "22218",
+     "serie": "U15P DM Blå Grupp 3",
+     "kategori": "U15P",
+     "endast_tabell": false
+    },
+    {
+     "id": "22219",
+     "serie": "U15P DM Blå Grupp 4",
+     "kategori": "U15P",
+     "endast_tabell": false
+    },
+    {
+     "id": "22220",
+     "serie": "U15P DM Röd Grupp 1",
+     "kategori": "U15P",
+     "endast_tabell": false
+    },
+    {
+     "id": "22221",
+     "serie": "U15P DM Röd Grupp 2",
+     "kategori": "U15P",
+     "endast_tabell": false
+    },
+    {
+     "id": "22222",
+     "serie": "U15P DM Röd Grupp 3",
+     "kategori": "U15P",
+     "endast_tabell": false
+    },
+    {
+     "id": "22223",
+     "serie": "U15P DM Röd Grupp 4",
+     "kategori": "U15P",
+     "endast_tabell": false
+    },
+    {
+     "id": "21455",
+     "serie": "U15P Blå Grupp 1",
+     "kategori": "U15P",
+     "endast_tabell": false
+    },
+    {
+     "id": "21456",
+     "serie": "U15P Blå Grupp 2",
+     "kategori": "U15P",
+     "endast_tabell": false
+    },
+    {
+     "id": "21457",
+     "serie": "U15P Blå Grupp 3",
+     "kategori": "U15P",
+     "endast_tabell": false
+    },
+    {
+     "id": "21462",
+     "serie": "U15P Kvalserie till Grupp A",
+     "kategori": "U15P",
+     "endast_tabell": false
+    },
+    {
+     "id": "21458",
+     "serie": "U15P Röd Grupp 1",
+     "kategori": "U15P",
+     "endast_tabell": false
+    },
+    {
+     "id": "21459",
+     "serie": "U15P Röd Grupp 2",
+     "kategori": "U15P",
+     "endast_tabell": false
+    },
+    {
+     "id": "21460",
+     "serie": "U15P Röd Grupp 3",
+     "kategori": "U15P",
+     "endast_tabell": false
+    },
+    {
+     "id": "21461",
+     "serie": "U15P Röd Grupp 4",
+     "kategori": "U15P",
+     "endast_tabell": false
+    },
+    {
+     "id": "22225",
+     "serie": "U14P DM Blå Grupp 1",
+     "kategori": "U14P",
+     "endast_tabell": true
+    },
+    {
+     "id": "22226",
+     "serie": "U14P DM Blå Grupp 2",
+     "kategori": "U14P",
+     "endast_tabell": true
+    },
+    {
+     "id": "22227",
+     "serie": "U14P DM Blå Grupp 3",
+     "kategori": "U14P",
+     "endast_tabell": true
+    },
+    {
+     "id": "22228",
+     "serie": "U14P DM Röd Grupp 1",
+     "kategori": "U14P",
+     "endast_tabell": true
+    },
+    {
+     "id": "22229",
+     "serie": "U14P DM Röd Grupp 2",
+     "kategori": "U14P",
+     "endast_tabell": true
+    },
+    {
+     "id": "22230",
+     "serie": "U14P DM Röd Grupp 3",
+     "kategori": "U14P",
+     "endast_tabell": true
+    },
+    {
+     "id": "22231",
+     "serie": "U14P DM Röd Grupp 4",
+     "kategori": "U14P",
+     "endast_tabell": true
+    },
+    {
+     "id": "22232",
+     "serie": "U14P DM Röd Grupp 5",
+     "kategori": "U14P",
+     "endast_tabell": true
+    },
+    {
+     "id": "21479",
+     "serie": "U14P Blå grupp 1",
+     "kategori": "U14P",
+     "endast_tabell": true
+    },
+    {
+     "id": "22298",
+     "serie": "U14P Kval till Grupp A",
+     "kategori": "U14P",
+     "endast_tabell": true
+    },
+    {
+     "id": "21482",
+     "serie": "U14P Röd grupp 1",
+     "kategori": "U14P",
+     "endast_tabell": true
+    },
+    {
+     "id": "21483",
+     "serie": "U14P Röd grupp 2",
+     "kategori": "U14P",
+     "endast_tabell": true
+    },
+    {
+     "id": "21484",
+     "serie": "U14P Röd grupp 3",
+     "kategori": "U14P",
+     "endast_tabell": true
+    },
+    {
+     "id": "21485",
+     "serie": "U14P Röd grupp 4",
+     "kategori": "U14P",
+     "endast_tabell": true
+    },
+    {
+     "id": "21486",
+     "serie": "U14P Röd grupp 5",
+     "kategori": "U14P",
+     "endast_tabell": true
+    },
+    {
+     "id": "21480",
+     "serie": "U14P Blå grupp 2",
+     "kategori": "U14P",
+     "endast_tabell": true
+    },
+    {
+     "id": "21481",
+     "serie": "U14P Blå grupp 3",
+     "kategori": "U14P",
+     "endast_tabell": true
+    },
+    {
+     "id": "21497",
+     "serie": "U14F Blå grupp",
+     "kategori": "U14F",
+     "endast_tabell": true
+    },
+    {
+     "id": "22329",
+     "serie": "U14F Kvalmatcher till Grupp A",
+     "kategori": "U14F",
+     "endast_tabell": true
+    },
+    {
+     "id": "21498",
+     "serie": "U14F Röd grupp 1",
+     "kategori": "U14F",
+     "endast_tabell": true
+    },
+    {
+     "id": "21499",
+     "serie": "U14F Röd Grupp 2",
+     "kategori": "U14F",
+     "endast_tabell": true
+    },
+    {
+     "id": "22211",
+     "serie": "U14F DM Grupp 1",
+     "kategori": "U14F",
+     "endast_tabell": true
+    },
+    {
+     "id": "22212",
+     "serie": "U14F DM Grupp 2",
+     "kategori": "U14F",
+     "endast_tabell": true
+    },
+    {
+     "id": "22213",
+     "serie": "U14F DM Slutspel A",
+     "kategori": "U14F",
+     "endast_tabell": true
+    },
+    {
+     "id": "22214",
+     "serie": "U14F DM Slutspel B",
+     "kategori": "U14F",
+     "endast_tabell": true
+    }
+   ]
+  },
+  "Uppland": {
+   "region": "Öst",
+   "grupper": [
+    {
+     "id": "22022",
+     "serie": "U16 P Uppland",
+     "kategori": "U16P",
+     "endast_tabell": false
+    },
+    {
+     "id": "21868",
+     "serie": "U15 P Uppland Grundserie",
+     "kategori": "U15P",
+     "endast_tabell": false
+    },
+    {
+     "id": "21833",
+     "serie": "U14 P Uppland",
+     "kategori": "U14P",
+     "endast_tabell": true
+    },
+    {
+     "id": "21830",
+     "serie": "U14 F Uppland",
+     "kategori": "U14F",
+     "endast_tabell": true
+    }
+   ]
+  },
+  "Södermanland": {
+   "region": "Öst",
+   "grupper": [
+    {
+     "id": "22017",
+     "serie": "U16 P Södermanland",
+     "kategori": "U16P",
+     "endast_tabell": false
+    },
+    {
+     "id": "21869",
+     "serie": "U15 P Södermanland",
+     "kategori": "U15P",
+     "endast_tabell": false
+    },
+    {
+     "id": "21842",
+     "serie": "U14 P Södermanland",
+     "kategori": "U14P",
+     "endast_tabell": true
+    }
+   ]
+  },
+  "Region Öst": {
+   "region": "Öst",
+   "grupper": [
+    {
+     "id": "21274",
+     "serie": "U18H Allettan Östra",
+     "kategori": "U18H",
+     "endast_tabell": false
+    },
+    {
+     "id": "21271",
+     "serie": "U18H Regional Öst",
+     "kategori": "U18H",
+     "endast_tabell": false
+    },
+    {
+     "id": "22243",
+     "serie": "U18H Regional Öst Fortsättning",
+     "kategori": "U18H",
+     "endast_tabell": false
+    },
+    {
+     "id": "22242",
+     "serie": "U18H Regional Östra Topp 6",
+     "kategori": "U18H",
+     "endast_tabell": false
+    },
+    {
+     "id": "21267",
+     "serie": "U18H Division 1 Östra A",
+     "kategori": "U18H",
+     "endast_tabell": false
+    },
+    {
+     "id": "21742",
+     "serie": "U18H Division 1 Östra B",
+     "kategori": "U18H",
+     "endast_tabell": false
+    },
+    {
+     "id": "21741",
+     "serie": "U18H Division 1 Östra C",
+     "kategori": "U18H",
+     "endast_tabell": false
+    }
+   ]
+  }
+ }
+}

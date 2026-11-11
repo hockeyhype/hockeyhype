@@ -143,13 +143,16 @@ def schedule(gid):
     return {"spelade": spelade, "kommande": kommande}
 
 
-def group(gid, serie, kategori):
+def group(gid, serie, kategori, endast_tabell=False):
+    if endast_tabell:
+        # U14: bara serietabellen (en sida per serie)
+        return {"id": gid, "serie": serie, "kategori": kategori, "uppdaterad": TODAY, "endast_tabell": True,
+                "spelare": [], "tabell": standings(gid), "malvakter": [], "matcher": {"spelade": [], "kommande": []}}
     births = roster_births(gid)
     sp, gk = players_by_team(gid)
     for r in sp:
         r[3] = births.get((r[1], r[0]))
     for r in gk:
         r[2] = births.get((r[1], r[0]))
-    return {"id": gid, "serie": serie, "kategori": kategori, "uppdaterad": TODAY,
-            "swehockey_uppdaterad": last_update(get(f"/Players/Statistics/ScoringLeaders/{gid}")),
+    return {"id": gid, "serie": serie, "kategori": kategori, "uppdaterad": TODAY, "endast_tabell": False,
             "spelare": sp, "tabell": standings(gid), "malvakter": gk, "matcher": schedule(gid)}

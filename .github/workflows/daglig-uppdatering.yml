@@ -51,15 +51,15 @@ jobs:
         if: steps.tid.outputs.kor == 'true'
         with:
           python-version: "3.12"
-      - name: Hämta data och uppdatera sidan
+      - name: Hämta data från swehockey
         if: steps.tid.outputs.kor == 'true'
-        run: python dagligen.py --sida index.html
+        run: python dagligen.py
       - name: Spara ändringar
         if: steps.tid.outputs.kor == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add index.html
+          git add data
           if git diff --staged --quiet; then
             echo "Inga ändringar."
           else
@@ -83,7 +83,7 @@ jobs:
       - name: Samla sidans filer och bygg serie- och lagsidor
         run: |
           mkdir _site
-          cp -r index.html om.html favicon.svg og.png fonts _site/
+          cp -r index.html om.html favicon.svg og.png fonts data _site/
           python3 bygg_sidor.py --ut _site
           touch _site/.nojekyll
       - uses: actions/configure-pages@v5

@@ -1,39 +1,29 @@
-"""Hela den dagliga Hockeykoll-körningen i ett kommando (används av den schemalagda uppgiften).
+"""Den dagliga uppdateringen av hockeyhype.se (körs av GitHub Actions).
 
-    python C:/Users/linus/Documents/SweHockeyScraper/dagligen.py --live <fil från Artifact read> --ut <katalog>
-    python dagligen.py --sida index.html          # GitHub: uppdaterar index.html på plats
+    python dagligen.py                  # uppdaterar säsongen i serier.json, skriver data/
+    python dagligen.py --serier serier.json --data data
 
-1. Om den publicerade sidan (--live) har ändrats av någon annan utgår körningen från den.
-2. Hämtar säsongens serier från swehockey och kontrollerar att inget ser trasigt ut.
-3. Sparar sidan (--sida, standard hockeykoll.html här i mappen) och, med --ut, en kopia i <katalog>/hockeykoll.html.
-4. Skriver ut en sammanfattning och sist en rad "PUBLICERA: <fil>" eller "AVBRUTET: <orsak>".
+1. Läser vilka serier som ska med från serier.json (skapas av hitta_serier.py).
+2. Hämtar varje serie från swehockey. U14-serier (endast_tabell) hämtar bara tabellen.
+3. Kontrollerar varje serie mot förra körningen. Ser en serie trasig ut - den kraschar, tabellen
+   blir tom, färre matcher eller lag, eller betydligt färre spelare - behålls förra körningens data
+   för just den serien och det skrivs ut som en varning. Resten uppdateras som vanligt.
+4. Skriver data/<säsong>/<distrikt>.json och data/index.json, och en sammanfattning.
+   Om mer än en fjärdedel av serierna får behålla gammal data avbryts körningen (exit 1) utan att
+   något sparas - då har swehockey troligen ändrat något, och GitHub mejlar om felet.
 """
-import argparse, os, shutil, sys, traceback
+import argparse, json, os, sys, traceback
 
 MAPP = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, MAPP)
-import swehockey, uppdatera
-
-LOKAL = os.path.join(MAPP, "hockeykoll.html")
-
-
-def winpath(p):
-    # Git Bash-sökvägar (/c/Users/...) -> C:\Users\..., och \\?\-prefix för sökvägar över 260 tecken
-    if p.startswith("/") and len(p) > 2 and p[2] == "/":
-        p = p[1].upper() + ":" + p[2:]
-    p = os.path.abspath(p)
-    return "\\\\?\\" + p if os.name == "nt" and not p.startswith("\\\\?\\") else p
-
-
-def innehall(t):
-    # Publiceringen lägger ett eget skal runt sidan - jämför bara från <title> och framåt
-    i = t.find("<title>")
-    return t[i:].strip() if i >= 0 else t.strip()
+import hockeydata, swehockey
 
 
 def sammanfatta(par):
     rader = []
     for old, new in par:
+        if not old or new is old:
+            continue
         gamla = {tuple(m[:3]) for m in old["matcher"]["spelade"]}
         nya = [m for m in new["matcher"]["spelade"] if tuple(m[:3]) not in gamla]
         gamla_k = {(m[1], m[2]): m for m in old["matcher"]["kommande"]}
@@ -57,69 +47,68 @@ def sammanfatta(par):
     return rader
 
 
-def kontrollera(par, varningar):
-    fel = list(varningar)
-    for old, new in par:
-        if len(new["matcher"]["spelade"]) < len(old["matcher"]["spelade"]):
-            fel.append(f"{new['serie']}: färre spelade matcher än förut "
-                       f"({len(old['matcher']['spelade'])} -> {len(new['matcher']['spelade'])})")
-        if len(new["spelare"]) < 0.8 * len(old["spelare"]):
-            fel.append(f"{new['serie']}: betydligt färre spelare än förut "
-                       f"({len(old['spelare'])} -> {len(new['spelare'])})")
-        if len(new["tabell"]) < len(old["tabell"]):
-            fel.append(f"{new['serie']}: färre lag i tabellen än förut")
-    return fel
+def fel_i_serie(old, new):
+    """Skäl att inte lita på en nyhämtad serie, jämfört med förra körningen (eller None)."""
+    if not old:
+        return None
+    if not new["tabell"] and old.get("tabell"):
+        return "tom tabell"
+    if len(new["tabell"]) < len(old["tabell"]):
+        return f"färre lag i tabellen ({len(old['tabell'])} -> {len(new['tabell'])})"
+    if len(new["matcher"]["spelade"]) < len(old["matcher"]["spelade"]):
+        return f"färre spelade matcher ({len(old['matcher']['spelade'])} -> {len(new['matcher']['spelade'])})"
+    if len(new["spelare"]) < 0.8 * len(old["spelare"]):
+        return f"betydligt färre spelare ({len(old['spelare'])} -> {len(new['spelare'])})"
+    return None
 
 
 def main():
     sys.stdout.reconfigure(encoding="utf-8")
     ap = argparse.ArgumentParser()
-    ap.add_argument("--live", help="den publicerade sidan, sparad av Artifact read")
-    ap.add_argument("--ut", help="katalog att skriva en kopia av sidan till, för publicering som artefakt")
-    ap.add_argument("--sida", default=LOKAL, help="sidan som uppdateras på plats")
-    ap.add_argument("--sasong", default="2026-27")
+    ap.add_argument("--serier", default=os.path.join(MAPP, "serier.json"))
+    ap.add_argument("--data", default=hockeydata.MAPP)
     args = ap.parse_args()
 
-    sida = os.path.abspath(args.sida)
-    lokal = open(sida, encoding="utf8").read()
-    bas = lokal
-    if args.live:
-        live = open(winpath(args.live), encoding="utf8").read()
-        if innehall(live) != innehall(lokal):
-            print("Den publicerade sidan skiljer sig från den lokala kopian - utgår från den publicerade.")
-            shutil.copyfile(sida, os.path.join(os.path.dirname(sida), "hockeykoll.forra.html"))
-            bas = live
-        else:
-            print("Den publicerade sidan är densamma som den lokala kopian.")
+    konfig = json.load(open(args.serier, encoding="utf8"))
+    sasong = konfig["sasong"]
+    _, gamla = hockeydata.las_sasong(sasong, args.data)
+    gamla = {g["id"]: g for g in gamla}
 
-    lines = bas.split("\n")
-    try:
-        par, varningar = uppdatera.uppdatera_sasong(lines, args.sasong)
-    except Exception:
-        traceback.print_exc()
-        print("AVBRUTET: skriptet kraschade (se felet ovan) - swehockey kan ha ändrat sina sidor")
-        return 1
+    grupper, par, varningar, antal = [], [], [], 0
+    for distrikt, info in konfig["distrikt"].items():
+        for s in info["grupper"]:
+            antal += 1
+            old = gamla.get(s["id"])
+            print(f"Hämtar {distrikt}: {s['serie']} ({s['id']})...", flush=True)
+            try:
+                new = swehockey.group(s["id"], s["serie"], s["kategori"], s.get("endast_tabell", False))
+                skal = fel_i_serie(old, new)
+            except Exception:
+                traceback.print_exc()
+                new, skal = None, "kraschade vid hämtningen"
+            if skal:
+                varningar.append(f"{s['serie']} ({s['id']}): {skal}" + (" - behåller förra körningens data" if old else " - hoppar över"))
+                if not old:
+                    continue
+                new = old
+            new["distrikt"] = distrikt
+            grupper.append(new)
+            par.append((old, new))
 
-    fel = kontrollera(par, varningar)
     print()
     rader = sammanfatta(par)
     print("SAMMANFATTNING")
     print("\n".join(rader) if rader else "Inga nya resultat eller ändrade matchtider.")
+    if varningar:
+        print("\nVARNINGAR")
+        print("\n".join("  " + v for v in varningar))
     print()
-    if fel:
-        print("Publicerar inte, något ser fel ut:")
-        print("\n".join("  " + f for f in fel))
-        print("AVBRUTET: " + "; ".join(fel))
+    if len(varningar) > antal / 4:
+        print(f"AVBRUTET: {len(varningar)} av {antal} serier gick inte att uppdatera - swehockey kan ha ändrat sina sidor")
         return 1
 
-    resultat = "\n".join(lines)
-    open(sida, "w", encoding="utf8").write(resultat)
-    ut = sida
-    if args.ut:
-        os.makedirs(winpath(args.ut), exist_ok=True)
-        ut = os.path.join(winpath(args.ut), "hockeykoll.html")
-        open(ut, "w", encoding="utf8").write(resultat)
-    print("PUBLICERA: " + ut.replace("\\\\?\\", ""))
+    hockeydata.spara_sasong(sasong, swehockey.TODAY, grupper, args.data)
+    print(f"KLART: {len(grupper)} serier sparade i {args.data}")
     return 0
 
 

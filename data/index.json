@@ -1,0 +1,40 @@
+{
+ "senaste": "2026-27",
+ "sasonger": {
+  "2025-26": {
+   "uppdaterad": "2026-09-03",
+   "distrikt": [
+    {
+     "namn": "Stockholm",
+     "fil": "stockholm.json",
+     "grupper": 11
+    }
+   ]
+  },
+  "2026-27": {
+   "uppdaterad": "2026-11-11",
+   "distrikt": [
+    {
+     "namn": "Stockholm",
+     "fil": "stockholm.json",
+     "grupper": 60
+    },
+    {
+     "namn": "Uppland",
+     "fil": "uppland.json",
+     "grupper": 4
+    },
+    {
+     "namn": "Södermanland",
+     "fil": "sodermanland.json",
+     "grupper": 3
+    },
+    {
+     "namn": "Region Öst",
+     "fil": "region-ost.json",
+     "grupper": 7
+    }
+   ]
+  }
+ }
+}

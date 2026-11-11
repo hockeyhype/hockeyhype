@@ -1,4 +1,4 @@
-"""Bygger statiska, sökmotorvänliga sidor ur datan i index.html.
+"""Bygger statiska, sökmotorvänliga sidor ur datan i data/ (senaste säsongen).
 
     python bygg_sidor.py --ut _site
 
@@ -12,27 +12,19 @@ Sidorna innehåller bara tabeller och matcher - inga spelarnamn, så att barns n
 sökträffar. Den interaktiva sidan (index.html) länkas från varje sida.
 """
 import argparse, datetime, html, os, re, unicodedata
-import uppdatera
+import hockeydata
 
 BAS = "https://hockeyhype.se"
-KATEGORIER = {"U15P": "Pojkar 15 år", "U16P": "Pojkar 16 år", "U18H": "Herrjuniorer 18 år"}
+OMRADE = "Stockholm, Uppland och Södermanland"
+KATEGORIER = hockeydata.KATEGORIER
 MANADER = ["jan", "feb", "mar", "apr", "maj", "jun", "jul", "aug", "sep", "okt", "nov", "dec"]
 e = html.escape
 
 
-def las_sasong(sida):
-    """Senaste säsongen i index.html: (säsong, uppdaterad, [grupper])."""
-    rader = open(sida, encoding="utf8").read().split("\n")
-    sasonger = [(m.group(1), i) for i, l in enumerate(rader) if (m := re.match(r'^"(\d{4}-\d{2})": \{$', l.strip()))]
-    sasong, start = max(sasonger)
-    uppdaterad, grupper = None, []
-    for l in rader[start + 1:]:
-        if l.strip().startswith("]"):
-            break
-        if l.strip().startswith("uppdaterad:"):
-            uppdaterad = re.search(r'"([^"]*)"', l).group(1)
-        if uppdatera.GROUP_RE.match(l):
-            grupper.append(uppdatera.parse_group(l))
+def las_sasong(mapp):
+    """Senaste säsongen i data/: (säsong, uppdaterad, [grupper])."""
+    sasong = hockeydata.las_index(mapp)["senaste"]
+    uppdaterad, grupper = hockeydata.las_sasong(sasong, mapp)
     return sasong, uppdaterad, grupper
 
 
@@ -98,6 +90,8 @@ tr.markerad td{background:var(--thead-bg);}
 .tom{color:var(--text-faint);font-style:italic;padding:10px 14px;margin:0;}
 .chip{font-family:"Oswald",sans-serif;font-size:12px;font-weight:600;padding:1px 7px;border-radius:5px;color:#fff;margin-right:6px;}
 .c-U15P{background:var(--u15);} .c-U16P{background:var(--u16);} .c-U18H{background:var(--u18);}
+.c-U14P{background:#2F6B4F;} .c-U14F,.c-U16F{background:#6B3A8E;}
+.not{color:var(--text-faint);font-size:14px;margin:14px 0 0;}
 .lista{columns:2 220px;column-gap:24px;margin:0;padding:12px 14px;list-style:none;}
 .lista li{padding:3px 0;break-inside:avoid;} .lista a{color:var(--text);} .lista a:hover{color:var(--accent);}
 .lista .n{color:var(--text-faint);font-size:13px;}
@@ -191,15 +185,17 @@ def skriv(ut, relativ, text):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--sida", default="index.html")
+    ap.add_argument("--data", default=hockeydata.MAPP)
     ap.add_argument("--ut", required=True)
     args = ap.parse_args()
 
-    sasong, uppdaterad, grupper = las_sasong(args.sida)
+    sasong, uppdaterad, grupper = las_sasong(args.data)
     sas = sasong.replace("-", "/")
     uppd = datum(uppdaterad) + (f" {uppdaterad[:4]}" if uppdaterad else "")
     ordning = list(KATEGORIER)
-    grupper.sort(key=lambda g: (ordning.index(g["kategori"]) if g["kategori"] in ordning else 99, g["serie"]))
+    distrikt = list(dict.fromkeys(g["distrikt"] for g in grupper))
+    grupper.sort(key=lambda g: (distrikt.index(g["distrikt"]),
+                                ordning.index(g["kategori"]) if g["kategori"] in ordning else 99, g["serie"]))
 
     # Lag -> unik slug, och vilka serier varje lag spelar i
     lagens_grupper = {}
@@ -223,19 +219,29 @@ def main():
         kommande = g["matcher"]["kommande"][:12]
         spelade = g["matcher"]["spelade"][:12]
         ledare = g["tabell"][0] if g["tabell"] else None
-        beskr = f"Tabell, resultat och kommande matcher för {g['serie']} ({kat}), säsong {sas}."
+        endast_tabell = g.get("endast_tabell")
+        if endast_tabell:
+            beskr = f"Tabell för {g['serie']} ({kat}, {g['distrikt']}), säsong {sas}."
+            lead = f"Serietabell, säsong {sas}. Uppdaterad {uppd}."
+            matcher = '<p class="not">För U14 visas bara serietabellen.</p>'
+            knapp = f'<a class="knapp" href="/#serie/{g["id"]}">Öppna serien på Hockeyhype →</a>'
+        else:
+            beskr = f"Tabell, resultat och kommande matcher för {g['serie']} ({kat}, {g['distrikt']}), säsong {sas}."
+            lead = f"Tabell, resultat och kommande matcher, säsong {sas}. Uppdaterad {uppd}."
+            matcher = (f'<section class="kort"><h2>Kommande matcher</h2>{matchlista(kommande, False, "Inga kommande matcher inlagda.")}</section>'
+                       f'<section class="kort"><h2>Senaste resultat</h2>{matchlista(spelade, True, "Inga spelade matcher ännu.")}</section>')
+            knapp = f'<a class="knapp" href="/#serie/{g["id"]}">Öppna serien med poängliga och statistik →</a>'
         if ledare:
             beskr += f" {ledare[1]} leder med {ledare[7]} poäng."
-        innehall = f"""<div class="brod"><a href="/serier/">Alla serier</a> › {e(kat)}</div>
+        innehall = f"""<div class="brod"><a href="/serier/">Alla serier</a> › {e(g['distrikt'])} › {e(kat)}</div>
 <h1>{e(g['serie'])}</h1>
-<p class="lead"><span class="chip c-{e(g['kategori'])}">{e(g['kategori'])}</span>Tabell, resultat och kommande matcher, säsong {sas}. Uppdaterad {uppd}.</p>
-<a class="knapp" href="/#serie/{g['id']}">Öppna serien med poängliga och statistik →</a>
+<p class="lead"><span class="chip c-{e(g['kategori'])}">{e(g['kategori'])}</span>{lead}</p>
+{knapp}
 <section class="kort"><h2>Tabell</h2>{tabell(g, lagslug)}</section>
-<section class="kort"><h2>Kommande matcher</h2>{matchlista(kommande, False, "Inga kommande matcher inlagda.")}</section>
-<section class="kort"><h2>Senaste resultat</h2>{matchlista(spelade, True, "Inga spelade matcher ännu.")}</section>
+{matcher}
 <p class="rad">Källa: <a href="https://stats.swehockey.se/ScheduleAndResults/Overview/{g['id']}">{e(g['serie'])} på stats.swehockey.se</a></p>"""
         skriv(args.ut, f"serie/{g['id']}/index.html",
-              sida(f"{g['serie']} – tabell och resultat {sas} | Hockeyhype", beskr, sokvag, innehall, sasong))
+              sida(f"{g['serie']} – {'tabell' if endast_tabell else 'tabell och resultat'} {sas} | Hockeyhype", beskr, sokvag, innehall, sasong))
         adresser.append((sokvag, "daily"))
 
     # En sida per lag (alla serier laget spelar i)
@@ -249,12 +255,16 @@ def main():
                     if rad else "Ingen tabellplacering ännu")
             kommande = [m for m in g["matcher"]["kommande"] if lag in m[1:3]][:5]
             spelade = [m for m in g["matcher"]["spelade"] if lag in m[1:3]][:5]
+            matcher = "" if g.get("endast_tabell") else (
+                f'<div class="inre"><h2>Nästa matcher</h2></div>{matchlista(kommande, False, "Inga kommande matcher inlagda.")}'
+                f'<div class="inre"><h2>Senaste resultat</h2></div>{matchlista(spelade, True, "Inga spelade matcher ännu.")}')
+            statistik = "" if g.get("endast_tabell") else (
+                f'<p class="rad"><a href="/#lag/{g["id"]}/{e(_url(lag))}">Lagets poängliga och statistik →</a></p>')
             delar.append(f"""<section class="kort"><h2><a href="/serie/{g['id']}/">{e(g['serie'])}</a></h2>
-<div class="inre"><span class="chip c-{e(g['kategori'])}">{e(g['kategori'])}</span>{e(kat)} · <strong>{plac}</strong>
-<p class="rad"><a href="/#lag/{g['id']}/{e(_url(lag))}">Lagets poängliga och statistik →</a></p></div>
+<div class="inre"><span class="chip c-{e(g['kategori'])}">{e(g['kategori'])}</span>{e(kat)} · {e(g['distrikt'])} · <strong>{plac}</strong>
+{statistik}</div>
 {tabell(g, lagslug, markera=lag)}
-<div class="inre"><h2>Nästa matcher</h2></div>{matchlista(kommande, False, "Inga kommande matcher inlagda.")}
-<div class="inre"><h2>Senaste resultat</h2></div>{matchlista(spelade, True, "Inga spelade matcher ännu.")}
+{matcher}
 </section>""")
         serienamn = ", ".join(g["serie"] for g in lg)
         beskr = f"{lag}: tabellplacering, resultat och kommande matcher säsong {sas} i {serienamn}."
@@ -268,21 +278,22 @@ def main():
 
     # Översikt: alla serier och lag
     sektioner = []
-    for kod, kat in KATEGORIER.items():
-        gs = [g for g in grupper if g["kategori"] == kod]
-        if gs:
-            sektioner.append(f'<section class="kort"><h2>{e(kat)} ({kod})</h2><ul class="lista">' + "".join(
-                f'<li><a href="/serie/{g["id"]}/">{e(g["serie"])}</a> <span class="n">{len(g["tabell"]) or len(lag_i_grupp(g))} lag</span></li>'
-                for g in gs) + "</ul></section>")
+    for d in distrikt:
+        for kod, kat in KATEGORIER.items():
+            gs = [g for g in grupper if g["distrikt"] == d and g["kategori"] == kod]
+            if gs:
+                sektioner.append(f'<section class="kort"><h2>{e(d)} · {e(kat)} ({kod})</h2><ul class="lista">' + "".join(
+                    f'<li><a href="/serie/{g["id"]}/">{e(g["serie"])}</a> <span class="n">{len(g["tabell"]) or len(lag_i_grupp(g))} lag</span></li>'
+                    for g in gs) + "</ul></section>")
     lagrad = "".join(f'<li><a href="/lag/{lagslug[l]}/">{e(l)}</a></li>' for l in sorted(lagslug, key=str.lower))
     innehall = f"""<h1>Alla serier och lag</h1>
-<p class="lead">Stockholms ungdomshockey säsong {sas}: {len(grupper)} serier och {len(lagslug)} lag. Uppdaterad {uppd}.</p>
+<p class="lead">Ungdomshockey i {OMRADE} säsong {sas}: {len(grupper)} serier och {len(lagslug)} lag. Uppdaterad {uppd}.</p>
 <a class="knapp" href="/">Till tabeller och spelarstatistik →</a>
 {"".join(sektioner)}
 <section class="kort"><h2>Lag A–Ö</h2><ul class="lista">{lagrad}</ul></section>"""
     skriv(args.ut, "serier/index.html",
-          sida(f"Alla serier och lag – ungdomshockey Stockholm {sas} | Hockeyhype",
-               f"Tabeller, resultat och kommande matcher för alla {len(grupper)} serier och {len(lagslug)} lag i Stockholms ungdomshockey (U15, U16 och U18) säsong {sas}.",
+          sida(f"Alla serier och lag – ungdomshockey {OMRADE} {sas} | Hockeyhype",
+               f"Tabeller, resultat och kommande matcher för alla {len(grupper)} serier och {len(lagslug)} lag i ungdomshockeyn i {OMRADE} (U14–U18, pojkar och flickor) säsong {sas}.",
                "/serier/", innehall, sasong))
 
     idag = datetime.date.today().isoformat()
