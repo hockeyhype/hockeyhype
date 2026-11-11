@@ -985,14 +985,20 @@ function renderFilters(){
 
   // ---- Distrikt ----
   const allaGrupper = RAW[currentSeason].grupper;
-  const distrikt = RAW[currentSeason].distrikt;
+  // Serier som spelas over hela regionen (U18) ligger under "Region X" i datan och heter
+  // "Regional" i filtret - de visas sist, efter distrikten
+  const arRegion = d => d.startsWith('Region ');
+  const distrikt = [...RAW[currentSeason].distrikt.filter(d => !arRegion(d)), ...RAW[currentSeason].distrikt.filter(arRegion)];
+  const antalRegioner = distrikt.filter(arRegion).length;
+  const distriktNamn = d => arRegion(d) ? (antalRegioner > 1 ? 'Regional ' + d.slice(7) : 'Regional') : d;
   buildDropdown('#ddDistrikt .dropdown-toggle', '.dropdown-panel', distrikt.map(d => ({
     key: d,
     checked: !excludedDistrikt.has(d),
-    label: d,
+    label: distriktNamn(d),
     render(row){
       const label = document.createElement('span');
-      label.className = 'label'; label.textContent = d;
+      label.className = 'label'; label.textContent = distriktNamn(d);
+      if (arRegion(d)) label.title = 'Serier som spelas över hela regionen, t.ex. U18';
       const count = document.createElement('span');
       count.className = 'count'; count.textContent = allaGrupper.filter(g => g.distrikt === d).length + ' serier';
       row.appendChild(label); row.appendChild(count);
