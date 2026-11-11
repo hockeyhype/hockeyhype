@@ -1,6 +1,6 @@
 """Hämtar serietabell, spelar-/målvaktsstatistik och matcher för en serie från stats.swehockey.se.
 
-Datat returneras i samma format som Hockeykoll använder (se README.md).
+Datat returneras i samma format som hockeyhype.se använder (se README.md).
 Sidorna cachas per dag i cache/ÅÅÅÅ-MM-DD så att en omkörning samma dag inte hämtar allt igen.
 """
 import datetime, html, os, re, time, urllib.request
@@ -8,13 +8,16 @@ import datetime, html, os, re, time, urllib.request
 BASE = "https://stats.swehockey.se"
 TODAY = datetime.date.today().isoformat()
 CACHE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cache", TODAY)
+ANROP = {"sidor": 0, "natverk": 0}  # sidor som behövts, och hur många av dem som hämtades över nätet
 
 
 def get(path):
+    ANROP["sidor"] += 1
     os.makedirs(CACHE, exist_ok=True)
     fn = os.path.join(CACHE, path.strip("/").replace("/", "_") + ".html")
     if os.path.exists(fn):
         return open(fn, encoding="utf8").read()
+    ANROP["natverk"] += 1
     req = urllib.request.Request(BASE + path, headers={"User-Agent": "Mozilla/5.0"})
     for attempt in range(3):
         try:

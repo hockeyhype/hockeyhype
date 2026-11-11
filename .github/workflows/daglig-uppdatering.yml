@@ -53,7 +53,15 @@ jobs:
           python-version: "3.12"
       - name: Hämta data från swehockey
         if: steps.tid.outputs.kor == 'true'
-        run: python dagligen.py
+        env:
+          SCHEMA: ${{ github.event.schedule }}
+        run: |
+          # Måndagsmorgonen och körningar startade för hand hämtar allt; övriga bara det som kan ha ändrats
+          if [ "${{ github.event_name }}" = workflow_dispatch ] || { [ "$SCHEMA" = "0 5 * * *" ] && [ "$(date +%u)" = 1 ]; }; then
+            python dagligen.py --full
+          else
+            python dagligen.py
+          fi
       - name: Spara ändringar
         if: steps.tid.outputs.kor == 'true'
         run: |
