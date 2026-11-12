@@ -1490,6 +1490,18 @@ function urvalsRad(body, colspan, text){
   tr.appendChild(td);
   body.appendChild(tr);
 }
+// Den som soker pa ett namn ska hitta personen aven utanfor topplistan. De visas under listan,
+// utan placering och i bokstavsordning (sa det blir ingen "samst forst"-lista), och bara nar
+// sokningen ar sa precis att traffarna ar fa.
+const OVRIGA_MAX = 10;
+function ovrigaTraffar(body, colspan, lista, rad){
+  if (!lista.length) return;
+  urvalsRad(body, colspan, lista.length > OVRIGA_MAX
+    ? `${lista.length} till matchar sökningen men är utanför topplistan. Skriv mer av namnet för att se dem.`
+    : 'Fler som matchar sökningen, utanför topplistan:');
+  if (lista.length <= OVRIGA_MAX) lista.forEach(rad);
+}
+const efterNamn = (a, b) => a.name.localeCompare(b.name, 'sv');
 // Sokningen traffade bara spelare utanfor topplistan: visa lagen de spelar i som lankar
 function showEmptyUrval(text, traffar){
   const body = document.getElementById('bodyRows');
@@ -1554,11 +1566,12 @@ function renderTable(){
     renderHead(PLAYER_COLS);
     const sokta = aggregatePlayers(rowsRaw).filter(p => matchesSearch(p.name) || matchesSearch(p.allaLag));
     let players = sortSpelare(sokta.filter(p => p.tp >= SPELARE_MIN_TP));
-    if (players.length === 0) { sokta.length ? showEmptyUrval(URVAL_SPELARE, sokta) : showEmpty(); updateSummary(0,0); return; }
+    const ovrigaSp = search ? sokta.filter(p => p.tp < SPELARE_MIN_TP && p.pos !== 'GK' && matchesSearch(p.name)).sort(efterNamn) : [];
+    if (players.length === 0 && ovrigaSp.length === 0) { sokta.length ? showEmptyUrval(URVAL_SPELARE, sokta) : showEmpty(); updateSummary(0,0); return; }
     const visaSpelareGrans = spelareKravMinstaGP();
     let spelareGransVisad = false;
-    players.forEach((p, i) => {
-      if (visaSpelareGrans && !spelareGransVisad && p.gp < SPELARE_MIN_GP) {
+    const spelarRad = (p, i, rk) => {
+      if (rk !== '–' && visaSpelareGrans && !spelareGransVisad && p.gp < SPELARE_MIN_GP) {
         spelareGransVisad = true;
         const gr = document.createElement('tr');
         gr.className = 'malvakt-grans-row';
@@ -1570,7 +1583,7 @@ function renderTable(){
       }
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td class="rk num col-rk">${i+1}</td>
+        <td class="rk num col-rk">${rk}</td>
         <td class="col-name"><div class="name-cell"><span class="full">${p.name}</span></div></td>
         <td class="col-lag"><span class="lag-cell">${lagLogoHtml(p.lag)}<span class="lag-text">${p.lag}</span></span></td>
         <td class="col-pos"><span class="pos-badge">${p.pos || '–'}</span></td>
@@ -1603,8 +1616,10 @@ function renderTable(){
         dr.appendChild(td);
         body.appendChild(dr);
       }
-    });
+    };
+    players.forEach((p, i) => spelarRad(p, i, i+1));
     urvalsRad(body, PLAYER_COLS.length, URVAL_SPELARE);
+    ovrigaTraffar(body, PLAYER_COLS.length, ovrigaSp, (p, j) => spelarRad(p, 'o'+j, '–'));
     // Summeringen (Lag/Serier) ska spegla TRAFFARNA, inte hela det ofiltrerade universum
     // som getFilteredRows() nu kan returnera medan man soker - darfor smalnas rowsRaw av
     // med samma sokvillkor som spelarna redan filtrerats med.
@@ -1615,11 +1630,12 @@ function renderTable(){
     const gkRowsRaw = getFilteredGkRows();
     const soktaMv = aggregateGoalkeepers(gkRowsRaw).filter(m => matchesSearch(m.name) || matchesSearch(m.allaLag));
     let malvakter = sortMalvakter(soktaMv.filter(m => m.svspct !== null && m.svspct >= MALVAKT_MIN_SVSPCT));
-    if (malvakter.length === 0) { soktaMv.length ? showEmptyUrval(URVAL_MALVAKTER, soktaMv) : showEmpty(); updateSummary(0,0); return; }
+    const ovrigaMv = search ? soktaMv.filter(m => !(m.svspct !== null && m.svspct >= MALVAKT_MIN_SVSPCT) && matchesSearch(m.name)).sort(efterNamn) : [];
+    if (malvakter.length === 0 && ovrigaMv.length === 0) { soktaMv.length ? showEmptyUrval(URVAL_MALVAKTER, soktaMv) : showEmpty(); updateSummary(0,0); return; }
     const visaGrans = malvaktKravMinstaGP();
     let gransVisad = false;
-    malvakter.forEach((m, i) => {
-      if (visaGrans && !gransVisad && m.gpi < MALVAKT_MIN_GP) {
+    const malvaktRad = (m, i, rk) => {
+      if (rk !== '–' && visaGrans && !gransVisad && m.gpi < MALVAKT_MIN_GP) {
         gransVisad = true;
         const gr = document.createElement('tr');
         gr.className = 'malvakt-grans-row';
@@ -1631,7 +1647,7 @@ function renderTable(){
       }
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td class="rk num col-rk">${i+1}</td>
+        <td class="rk num col-rk">${rk}</td>
         <td class="col-name"><div class="name-cell"><span class="full">${m.name}</span></div></td>
         <td class="col-lag"><span class="lag-cell">${lagLogoHtml(m.lag)}<span class="lag-text">${m.lag}</span></span></td>
         <td class="num-col num col-fodelsear">${m.fodelsear || '–'}</td>
@@ -1666,8 +1682,10 @@ function renderTable(){
         dr.appendChild(td);
         body.appendChild(dr);
       }
-    });
+    };
+    malvakter.forEach((m, i) => malvaktRad(m, i, i+1));
     urvalsRad(body, GK_COLS.length, URVAL_MALVAKTER);
+    ovrigaTraffar(body, GK_COLS.length, ovrigaMv, (m, j) => malvaktRad(m, 'o'+j, '–'));
     const gkRowsRawSokt = search ? gkRowsRaw.filter(r => matchesSearch(r.name) || matchesSearch(r.lag)) : gkRowsRaw;
     updateSummary(malvakter.length, new Set(gkRowsRawSokt.map(r=>r.lag)).size, gkRowsRawSokt);
   } else {
