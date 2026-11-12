@@ -2158,6 +2158,20 @@ function syncSerieKnapp(){
   document.querySelectorAll('.serie-view-btn').forEach(b => { b.disabled = grupper.length !== 1; });
 }
 
+// Vilken av Spelare/Malvakt en namnsokning ska visas i. Malvakterna finns aven bland
+// utespelarna (position GK, oftast 0 poang) och syns da inte i spelarnas topplista - sa
+// valj den vy dar personen faktiskt syns (minst en poang respektive minst 85 % raddningar).
+function namnTraffar(){
+  const rader = getFilteredRows().filter(r => matchesSearch(r.name));
+  const sp = aggregatePlayers(rader);
+  const mv = aggregateGoalkeepers(getFilteredGkRows().filter(r => matchesSearch(r.name)));
+  const spSynlig = sp.some(p => p.tp >= SPELARE_MIN_TP);
+  const mvSynlig = mv.some(m => (m.svspct ?? 0) >= MALVAKT_MIN_SVSPCT);
+  const vy = spSynlig ? 'spelare' : mvSynlig ? 'malvakt'
+    : rader.some(r => r.pos !== 'GK') ? 'spelare' : mv.length ? 'malvakt' : null;
+  return { vy, spelare: spSynlig, malvakt: mvSynlig };
+}
+
 function autoVaxlaVyForSokning(){
   // Om sokningen bara ger traff bland spelare/malvakter (t.ex. ett namn) medan man star pa
   // Tabell eller Lag - som saknar namn - vaxla automatiskt till ratt vy.
@@ -2174,9 +2188,14 @@ function autoVaxlaVyForSokning(){
       const rader = currentView === 'malvakt' ? getFilteredGkRows() : getFilteredRows();
       const traff = currentView === 'lag' ? rader.some(r => matchesSearch(r.lag))
         : rader.some(r => matchesSearch(r.name) || matchesSearch(r.lag));
-      if (!traff) bytVy('tabell');
+      if (!traff) { bytVy('tabell'); return; }
     }
-    if (currentView !== 'lag') return;
+    if (currentView !== 'lag') {
+      // Sok pa en malvakt fran Spelare-vyn (eller tvartom): byt till vyn dar personen syns
+      const n = namnTraffar();
+      if (n.vy && n.vy !== currentView && !n[currentView]) bytVy(n.vy);
+      return;
+    }
   }
 
   const rowsRaw = getFilteredRows();
@@ -2196,7 +2215,7 @@ function autoVaxlaVyForSokning(){
   if (traffINuvarandeVy) return;
 
   // Foredra Spelare-vyn om bade spelare och malvakter ger traff (vanligast fallet).
-  bytVy(spelareTraff ? 'spelare' : 'malvakt');
+  bytVy(namnTraffar().vy || (spelareTraff ? 'spelare' : 'malvakt'));
 }
 
 searchInputEl.addEventListener('input', e => {
