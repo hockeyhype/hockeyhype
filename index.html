@@ -934,6 +934,7 @@ function buildDropdown(toggleSel, panelSel, items, opts){
 
   const actions = document.createElement('div');
   actions.className = 'dp-actions';
+  const klar = () => opts.efterAndring ? opts.efterAndring() : renderAll();
   const sokInput = items.length > DD_SOK_GRANS ? document.createElement('input') : null;
   const rader = [];
   const sokOrd = () => sokInput ? sokInput.value.toLowerCase().split(/\s+/).filter(Boolean) : [];
@@ -943,13 +944,13 @@ function buildDropdown(toggleSel, panelSel, items, opts){
   allBtn.type = 'button'; allBtn.textContent = 'Markera allt';
   allBtn.addEventListener('click', () => {
     if (sokOrd().length) synliga().forEach(it => it.onChange(true)); else opts.onSelectAll();
-    renderAll();
+    klar();
   });
   const noneBtn = document.createElement('button');
   noneBtn.type = 'button'; noneBtn.textContent = 'Avmarkera allt';
   noneBtn.addEventListener('click', () => {
     if (sokOrd().length) synliga().forEach(it => it.onChange(false)); else opts.onSelectNone();
-    renderAll();
+    klar();
   });
   actions.appendChild(allBtn); actions.appendChild(noneBtn);
   if (sokInput) {
@@ -979,7 +980,7 @@ function buildDropdown(toggleSel, panelSel, items, opts){
     row.appendChild(cb);
     item.render(row);
     row.addEventListener('click', e => { if (e.target !== cb && !cb.disabled) cb.click(); });
-    cb.addEventListener('change', () => { item.onChange(cb.checked); renderAll(); });
+    cb.addEventListener('change', () => { item.onChange(cb.checked); klar(); });
     panel.appendChild(row);
     rader.push(row);
   });
@@ -1002,12 +1003,14 @@ function buildDropdown(toggleSel, panelSel, items, opts){
       noneBtn.textContent = ord.length ? 'Avmarkera synliga' : 'Avmarkera allt';
     };
     sokInput.addEventListener('input', () => { ddSok[toggleSel] = sokInput.value; filtrera(); });
-    // Enter kryssar i/ur valet nar sokningen bara lamnar ett kvar
+    // Enter valjer det enda val som sokningen lamnar kvar - och bara det
     sokInput.addEventListener('keydown', e => {
       if (e.key !== 'Enter') return;
       e.preventDefault();
-      const kvar = rader.filter(r => !r.hidden);
-      if (kvar.length === 1) kvar[0].querySelector('input').click();
+      const kvar = items.filter((it, k) => !rader[k].hidden);
+      if (kvar.length !== 1) return;
+      items.forEach(it => it.onChange(it === kvar[0]));
+      klar();
     });
     filtrera();
   }
@@ -1109,6 +1112,18 @@ function renderFilters(){
       [...lagIGrupp(g)].forEach(l => excluded.delete(g.serie+'||'+l));
     }),
     onSelectNone: () => relevantGrupper.forEach(g => excludedSeries.add(g.serie)),
+    // Ar exakt en serie vald visas den i Serie-vyn. Valjer man fler fran Serie-vyn gar man
+    // tillbaka till tabellerna (Serie-vyn kan bara visa en serie).
+    efterAndring(){
+      const valda = seasonData().grupper.filter(g => !excludedKategori.has(g.kategori) && !excludedSeries.has(g.serie));
+      if (valda.length === 1 && currentView !== 'serie') {
+        document.querySelectorAll('.dropdown.open').forEach(d => d.classList.remove('open'));
+        filtreraPaSerie(valda[0]);
+        return;
+      }
+      if (valda.length > 1 && currentView === 'serie') bytVy('tabell');
+      renderAll();
+    },
   });
 
   // ---- Lag ----
