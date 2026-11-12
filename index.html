@@ -1028,7 +1028,7 @@ function renderFilters(){
       row.appendChild(label); row.appendChild(count);
     },
     onChange(isChecked){
-      const lagIStock = [...new Set(g.spelare.map(r => r[1]))];
+      const lagIStock = [...lagIGrupp(g)];
       if (isChecked) { excludedSeries.delete(g.serie); lagIStock.forEach(l => excluded.delete(g.serie+'||'+l)); }
       else excludedSeries.add(g.serie);
     },
@@ -1038,7 +1038,7 @@ function renderFilters(){
     emptyText: 'Välj minst en ålderskategori ovan.',
     onSelectAll: () => relevantGrupper.forEach(g => {
       excludedSeries.delete(g.serie);
-      [...new Set(g.spelare.map(r => r[1]))].forEach(l => excluded.delete(g.serie+'||'+l));
+      [...lagIGrupp(g)].forEach(l => excluded.delete(g.serie+'||'+l));
     }),
     onSelectNone: () => relevantGrupper.forEach(g => excludedSeries.add(g.serie)),
   });
@@ -1052,7 +1052,7 @@ function renderFilters(){
   relevantSerier.forEach(g => {
     // Unionen av lag fran bade spelare och malvakter - annars skulle ett lag med enbart
     // en malvakt (och ingen listad utespelare) sakna en egen rad i filtret.
-    const lagIGruppen = new Set([...g.spelare.map(r => r[1]), ...(g.malvakter || []).map(r => r[1])]);
+    const lagIGruppen = lagIGrupp(g);
     lagIGruppen.forEach(lag => {
       if (!lagNycklarPerNamn.has(lag)) lagNycklarPerNamn.set(lag, []);
       lagNycklarPerNamn.get(lag).push(g.serie+'||'+lag);
@@ -1204,6 +1204,12 @@ function matchesSearch(text){
   return search.toLowerCase().replace(/,/g, ' ').split(/\s+/).filter(Boolean).every(ord => t.includes(ord));
 }
 
+// Alla lag i en serie: fran spelar- och malvaktsstatistiken och fran tabellen. U14-serierna har
+// bara tabell (ingen spelarstatistik), sa utan tabellen skulle deras lag saknas i Lag-filtret.
+function lagIGrupp(g){
+  return new Set([...g.spelare.map(r => r[1]), ...(g.malvakter || []).map(r => r[1]), ...(g.tabell || []).map(r => r[1])]);
+}
+
 function filtreraPaLag(lagNamn, serieNamn){
   // Lagnamn ar bara unika INOM en serie (tva olika lag i tva olika serier kan raka heta
   // t.ex. "AIK") - darfor maste vi veta VILKEN serie klicket kom ifran, annars riskerar vi
@@ -1212,7 +1218,7 @@ function filtreraPaLag(lagNamn, serieNamn){
     // Fallback om anropsstallet undantagsvis inte kanner till serien annu: leta upp forsta
     // serien dar namnet forekommer (bast-mojliga gissning, men bor i princip aldrig hända).
     const traff = seasonData().grupper.find(g => {
-      const lagISerien = new Set([...g.spelare.map(r => r[1]), ...(g.malvakter || []).map(r => r[1])]);
+      const lagISerien = lagIGrupp(g);
       return lagISerien.has(lagNamn);
     });
     serieNamn = traff ? traff.serie : null;
@@ -1222,7 +1228,7 @@ function filtreraPaLag(lagNamn, serieNamn){
   // det laget) - precis som att ha filtrerat fram det for hand, fast med matcher/tabell pa kopet.
   const grupper = seasonData().grupper;
   grupper.forEach(g => {
-    const lagIGruppen = new Set([...g.spelare.map(r => r[1]), ...(g.malvakter || []).map(r => r[1])]);
+    const lagIGruppen = lagIGrupp(g);
     lagIGruppen.forEach(lag => {
       const key = g.serie + '||' + lag;
       if (g.serie === serieNamn && lag === lagNamn) excluded.delete(key);
@@ -1933,7 +1939,9 @@ function byggSeriePoanglista(topplista){
     const hint = document.createElement('div');
     hint.className = 'empty-hint';
     hint.style.padding = '12px';
-    hint.textContent = 'Ingen spelarstatistik publicerad ännu.';
+    const g = currentView === 'lagdetalj' ? hittaGruppForLag(fokusLag, fokusSerie)
+      : seasonData().grupper.find(g => !excludedSeries.has(g.serie) && !excludedKategori.has(g.kategori));
+    hint.textContent = g && g.endast_tabell ? 'För U14 visas bara serietabellen.' : 'Ingen spelarstatistik publicerad ännu.';
     wrap.appendChild(hint);
     return { el: wrap, antal: 0, rowsRaw };
   }
@@ -2033,7 +2041,7 @@ function hittaGruppForLag(lagNamn, serieNamn){
   // dar namnet forekommer.
   return seasonData().grupper.find(g => {
     if (g.serie !== serieNamn) return false;
-    const lagISerien = new Set([...g.spelare.map(r => r[1]), ...(g.malvakter || []).map(r => r[1])]);
+    const lagISerien = lagIGrupp(g);
     return lagISerien.has(lagNamn);
   });
 }

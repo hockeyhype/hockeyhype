@@ -101,7 +101,9 @@ jobs:
 
   publicera:
     needs: bygg
-    if: ${{ !failure() && !cancelled() }}
+    # Bara om bygget faktiskt körde - annars (t.ex. kvällsschemat för fel UTC-timme, där bygget
+    # hoppas över) letar publiceringen efter ett paket som inte finns och körningen blir röd.
+    if: ${{ !cancelled() && needs.bygg.result == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       pages: write
