@@ -294,6 +294,14 @@ button{font:inherit;color:inherit;}
   font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;cursor:pointer;
 }
 .dropdown-panel .dp-actions button:hover{color:var(--text);}
+.dp-top{position:sticky;top:-6px;margin:-6px -6px 4px;padding:6px 6px 0;background:var(--surface);z-index:1;}
+.dp-top .dp-actions{margin-bottom:0;}
+.dp-sok{
+  width:100%;box-sizing:border-box;margin:0 0 6px;padding:7px 9px;border:1px solid var(--border);border-radius:7px;
+  background:var(--surface-2);color:var(--text);font:inherit;font-size:13px;outline:none;
+}
+.dp-sok:focus{border-color:var(--accent);}
+.dp-item[hidden]{display:none;}
 .dp-item{display:flex;align-items:center;gap:8px;padding:6px 6px;border-radius:6px;cursor:pointer;}
 .dp-item:hover{background:var(--surface-2);}
 .dp-item input[type=checkbox]{width:15px;height:15px;accent-color:var(--accent);flex:none;cursor:pointer;}
@@ -913,6 +921,10 @@ function summarizeLabel(selectedCount, totalCount, allLabel, singleLabel){
   return `${selectedCount} av ${totalCount} valda`;
 }
 
+// Listor med fler an sa har manga val far en sokruta overst. Soktexten sparas per lista sa att
+// den finns kvar nar filtren byggs om efter varje kryss; den toms nar listan oppnas pa nytt.
+const DD_SOK_GRANS = 10;
+const ddSok = {};
 function buildDropdown(toggleSel, panelSel, items, opts){
   // items: [{ key, checked, disabled, render(el) }]
   const dd = document.querySelector(toggleSel).closest('.dropdown');
@@ -922,14 +934,35 @@ function buildDropdown(toggleSel, panelSel, items, opts){
 
   const actions = document.createElement('div');
   actions.className = 'dp-actions';
+  const sokInput = items.length > DD_SOK_GRANS ? document.createElement('input') : null;
+  const rader = [];
+  const sokOrd = () => sokInput ? sokInput.value.toLowerCase().split(/\s+/).filter(Boolean) : [];
+  // Med en sokning ikryssad galler knapparna bara de val som syns
+  const synliga = () => items.filter((it, k) => !rader[k].hidden);
   const allBtn = document.createElement('button');
   allBtn.type = 'button'; allBtn.textContent = 'Markera allt';
-  allBtn.addEventListener('click', () => { opts.onSelectAll(); renderAll(); });
+  allBtn.addEventListener('click', () => {
+    if (sokOrd().length) synliga().forEach(it => it.onChange(true)); else opts.onSelectAll();
+    renderAll();
+  });
   const noneBtn = document.createElement('button');
   noneBtn.type = 'button'; noneBtn.textContent = 'Avmarkera allt';
-  noneBtn.addEventListener('click', () => { opts.onSelectNone(); renderAll(); });
+  noneBtn.addEventListener('click', () => {
+    if (sokOrd().length) synliga().forEach(it => it.onChange(false)); else opts.onSelectNone();
+    renderAll();
+  });
   actions.appendChild(allBtn); actions.appendChild(noneBtn);
-  panel.appendChild(actions);
+  if (sokInput) {
+    const top = document.createElement('div');
+    top.className = 'dp-top';
+    sokInput.type = 'search'; sokInput.className = 'dp-sok'; sokInput.autocomplete = 'off';
+    sokInput.placeholder = 'Sök bland ' + items.length + '…';
+    sokInput.value = ddSok[toggleSel] || '';
+    top.appendChild(sokInput); top.appendChild(actions);
+    panel.appendChild(top);
+  } else {
+    panel.appendChild(actions);
+  }
 
   if (items.length === 0) {
     const hint = document.createElement('div');
@@ -948,7 +981,36 @@ function buildDropdown(toggleSel, panelSel, items, opts){
     row.addEventListener('click', e => { if (e.target !== cb && !cb.disabled) cb.click(); });
     cb.addEventListener('change', () => { item.onChange(cb.checked); renderAll(); });
     panel.appendChild(row);
+    rader.push(row);
   });
+
+  if (sokInput) {
+    const ingen = document.createElement('div');
+    ingen.className = 'empty-hint';
+    ingen.textContent = 'Inga träffar.';
+    panel.appendChild(ingen);
+    const filtrera = () => {
+      const ord = sokOrd();
+      let n = 0;
+      items.forEach((it, k) => {
+        const text = String(it.label ?? it.key).toLowerCase();
+        rader[k].hidden = !ord.every(o => text.includes(o));
+        if (!rader[k].hidden) n++;
+      });
+      ingen.hidden = n > 0;
+      allBtn.textContent = ord.length ? 'Markera synliga' : 'Markera allt';
+      noneBtn.textContent = ord.length ? 'Avmarkera synliga' : 'Avmarkera allt';
+    };
+    sokInput.addEventListener('input', () => { ddSok[toggleSel] = sokInput.value; filtrera(); });
+    // Enter kryssar i/ur valet nar sokningen bara lamnar ett kvar
+    sokInput.addEventListener('keydown', e => {
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+      const kvar = rader.filter(r => !r.hidden);
+      if (kvar.length === 1) kvar[0].querySelector('input').click();
+    });
+    filtrera();
+  }
 
   const selectedCount = items.filter(i => i.checked).length;
   toggle.textContent = summarizeLabel(selectedCount, items.length, opts.allLabel, () => opts.singleLabel(items.find(i => i.checked)));
@@ -2274,7 +2336,15 @@ document.addEventListener('click', e => {
     const dd = toggle.closest('.dropdown');
     const wasOpen = dd.classList.contains('open');
     document.querySelectorAll('.dropdown.open').forEach(d => d.classList.remove('open'));
-    if (!wasOpen) dd.classList.add('open');
+    if (!wasOpen) {
+      dd.classList.add('open');
+      const sok = dd.querySelector('.dp-sok');
+      if (sok) {
+        sok.value = '';
+        sok.dispatchEvent(new Event('input'));
+        if (matchMedia('(pointer: fine)').matches) sok.focus();
+      }
+    }
     return;
   }
   // Anvander composedPath (ett ogonblicksfoto av tradet vid klicktillfallet) istallet for
