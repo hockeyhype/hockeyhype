@@ -609,7 +609,7 @@ td.col-lag:hover{text-decoration:underline;text-underline-offset:2px;color:var(-
     </div>
     <div class="search-box" id="searchBox">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-      <input id="searchInput" type="text" placeholder="Sök spelare eller lag&hellip;" autocomplete="off">
+      <input id="searchInput" type="text" placeholder="Sök spelare, lag eller serie&hellip;" autocomplete="off">
       <button class="clear-btn" id="clearSearchBtn" type="button" aria-label="Rensa sökning" title="Rensa sökning">✕</button>
     </div>
     <div class="season-tabs" id="seasonTabs"></div>
@@ -800,6 +800,12 @@ function seasonData(){
   return s._vy;
 }
 const KATEGORI_NAMN = { U14P:'Pojkar 14 år', U14F:'Flickor 14 år', U15P:'Pojkar 15 år', U16P:'Pojkar 16 år', U16F:'Flickor 16 år', U18H:'Herrjuniorer 18 år' };
+// Det en serie kan hittas pa i sokrutan: namnet, aldersklassen ("U16", "flickor") och distriktet
+// ("Uppland", "regional" for serierna som spanner over hela regionen).
+function serieSokText(g){
+  const d = g.distrikt || '';
+  return [g.serie, g.kategori, KATEGORI_NAMN[g.kategori] || '', d, d.startsWith('Region ') ? 'Regional' : ''].join(' ');
+}
 const KATEGORI_ORDNING = Object.keys(KATEGORI_NAMN);
 function kategoriOrdning(kat){ const i = KATEGORI_ORDNING.indexOf(kat); return i < 0 ? 99 : i; }
 // Laddar en sasongs alla distriktsfiler (en gang). Grupperna sorteras pa kategori, sedan distrikt.
@@ -1733,8 +1739,11 @@ function renderStandings(){
 
   function byggKort(g, visaKatChip){
     const allaRader = g.tabell || [];
-    const rader = allaRader.filter(r => matchesSearch(r[1]));
-    if (search && rader.length === 0) return null; // dolj kortet om ingen match pa lagnamn
+    // Traffar sokningen sjalva serien (namn, aldersklass, distrikt) visas hela tabellen,
+    // annars bara de lag vars namn matchar.
+    const serieTraff = !!search && matchesSearch(serieSokText(g));
+    const rader = serieTraff ? allaRader : allaRader.filter(r => matchesSearch(r[1]));
+    if (search && !serieTraff && rader.length === 0) return null; // dolj kortet om ingen match
 
     const card = document.createElement('div');
     card.className = 'standings-card';
@@ -2155,7 +2164,20 @@ function autoVaxlaVyForSokning(){
   // Star man redan pa en vy dar sokningen faktiskt ger traff (t.ex. ett lagnamn i
   // Tabell/Lag), lat anvandaren stanna kvar dar. Serie-vyn har redan bade lagnamn och
   // spelarnamn, sa den behover heller aldrig vaxlas bort ifran.
-  if (!search || currentView === 'spelare' || currentView === 'malvakt' || currentView === 'serie' || currentView === 'lagdetalj') return;
+  if (!search || currentView === 'serie' || currentView === 'lagdetalj') return;
+
+  // Sokningen traffar en serie (t.ex. "U16P Röd grupp 2" eller "Uppland") men inga spelare
+  // eller lag i den vy man star pa: visa serietabellerna.
+  const serieTraff = seasonData().grupper.some(g => matchesSearch(serieSokText(g)));
+  if (currentView === 'spelare' || currentView === 'malvakt' || currentView === 'lag') {
+    if (serieTraff) {
+      const rader = currentView === 'malvakt' ? getFilteredGkRows() : getFilteredRows();
+      const traff = currentView === 'lag' ? rader.some(r => matchesSearch(r.lag))
+        : rader.some(r => matchesSearch(r.name) || matchesSearch(r.lag));
+      if (!traff) bytVy('tabell');
+    }
+    if (currentView !== 'lag') return;
+  }
 
   const rowsRaw = getFilteredRows();
   const gkRowsRaw = getFilteredGkRows();
@@ -2167,7 +2189,7 @@ function autoVaxlaVyForSokning(){
   if (currentView === 'tabell') {
     // search ar redan garanterat ifylld har (se tidiga returen ovan) - sok genom ALLA
     // grupper, inte bara de just nu ikryssade i Alder/Serie-filtren.
-    traffINuvarandeVy = seasonData().grupper.some(g => (g.tabell || []).some(r => matchesSearch(r[1])));
+    traffINuvarandeVy = serieTraff || seasonData().grupper.some(g => (g.tabell || []).some(r => matchesSearch(r[1])));
   } else {
     traffINuvarandeVy = rowsRaw.some(r => matchesSearch(r.lag)) || gkRowsRaw.some(r => matchesSearch(r.lag));
   }
