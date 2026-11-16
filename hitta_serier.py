@@ -21,6 +21,9 @@ DISTRIKT = {
 }
 # Serier som ligger under regionen och inte under något distrikt, men som hör till region Öst
 REGIONSERIER = {"Öst": ["21274", "21271", "22243", "22242", "21267", "21742", "21741"]}
+# Regionens U18-ligor (U18 Div 1 och U18 Regional i regionmenyn). Varje ligas sida listar ligans
+# alla grupper - nya grupper där läggs till av sig själva. Byts ut när säsongen byts.
+REGIONLIGOR = {"Öst": ["21274", "22243"]}
 
 SASONG = "2026-27"
 NAVORD = {"Schedule & Results", "Live", "Overview", "Schedule", "Standings", "Tot/H/A"}
@@ -84,6 +87,20 @@ def ligans_grupper(gid, foljd=True):
     return grupper
 
 
+def regionligans_grupper(gid):
+    """U18-grupperna i en regionligas trädmeny (regionsidorna saknar säsongsrubriker i trädet)."""
+    t = swehockey.get(f"/ScheduleAndResults/Overview/{gid}")
+    grupper = []
+    for typ, id_, namn in re.findall(r'<li class="\w+Item list-group-item[^"]*">\s*(?:<[^a][^>]*>\s*)*'
+                                     r'<a href="/ScheduleAndResults/(\w+)/(\d+)">\s*([^<]*?)\s*</a>', t):
+        namn = text(namn)
+        if typ != "Overview" or namn in NAVORD or SKIPPA.search(namn) or not re.match(r"\s*U\s?18", namn):
+            continue
+        if id_ not in [g[0] for g in grupper]:
+            grupper.append((id_, namn))
+    return grupper
+
+
 def skriv_ut(namn, grupper, extra=""):
     print(f"{namn}: {extra}{len(grupper)} grupper")
     for g in grupper:
@@ -117,11 +134,19 @@ def main():
 
     # U18-serierna spelas på regionnivå och ligger inte under något distrikt
     kanda = {g["id"]: g["serie"] for g in hockeydata.las_sasong(SASONG)[1]}
-    for region, ids in REGIONSERIER.items():
+    for region in sorted(set(REGIONSERIER) | set(REGIONLIGOR)):
+        hittade = {}
+        for liga in REGIONLIGOR.get(region, []):
+            try:
+                hittade.update(regionligans_grupper(liga))
+            except Exception as fel:
+                print(f"Kunde inte läsa regionligan {liga}: {fel}")
+        ids = list(REGIONSERIER.get(region, [])) + [i for i in hittade if i not in REGIONSERIER.get(region, [])]
         grupper = []
         for id_ in ids:
-            namn = dict(ligans_grupper(id_)).get(id_) or kanda.get(id_, id_)
-            grupper.append({"id": id_, "serie": namn, "kategori": kategori(namn) or "U18H", "endast_tabell": False})
+            # Behåll namnet vi redan har; nya grupper får namnet från swehockeys meny
+            namn = kanda.get(id_) or hittade.get(id_) or dict(ligans_grupper(id_)).get(id_) or id_
+            grupper.append({"id": id_, "serie": namn, "kategori": "U18H", "endast_tabell": False})
         resultat["distrikt"][f"Region {region}"] = {"region": region, "grupper": grupper}
         skriv_ut(f"Region {region}", grupper)
     if args.lagg_till and os.path.exists(args.ut):

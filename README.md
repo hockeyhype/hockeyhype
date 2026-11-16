@@ -71,7 +71,7 @@ Vilka serier som hämtas styrs av `serier.json`. Den skapas av:
 python hitta_serier.py
 ```
 
-Skriptet går igenom distriktens menyer på swehockey, plockar ut ungdomsligorna (cuper, träningsmatcher och yngre åldrar hoppas över) och listar säsongens alla grupper, inklusive DM- och kvalgrupper. Måndagsmorgonen (och körningar för hand) kör `python hitta_serier.py --lagg-till` före uppdateringen: nya serier läggs till i `serier.json` av sig själva, men inga tas bort - en serie som ska bort tas bort för hand. U18-serier på regionnivå hittas inte av skanningen utan läggs till för hand i `REGIONSERIER`. Distrikten och U18-serierna på regionnivå står i början av `hitta_serier.py` (`DISTRIKT`, `REGIONSERIER`), liksom säsongen (`SASONG`).
+Skriptet går igenom distriktens menyer på swehockey, plockar ut ungdomsligorna (cuper, träningsmatcher och yngre åldrar hoppas över) och listar säsongens alla grupper, inklusive DM- och kvalgrupper. Måndagsmorgonen (och körningar för hand) kör `python hitta_serier.py --lagg-till` före uppdateringen: nya serier läggs till i `serier.json` av sig själva, men inga tas bort - en serie som ska bort tas bort för hand. U18-serierna på regionnivå hittas via regionens U18-ligor (`REGIONLIGOR`: U18 Div 1 och U18 Regional), som byts ut när säsongen byts. Distrikten och U18-serierna på regionnivå står i början av `hitta_serier.py` (`DISTRIKT`, `REGIONSERIER`), liksom säsongen (`SASONG`).
 
 Kör skriptet igen när nya grupper tillkommer under säsongen (t.ex. DM eller slutspel) och inför en ny säsong. En enskild serie kan också läggas till för hand i `serier.json`. Nästa körning av `dagligen.py` hämtar sedan datan.
 
