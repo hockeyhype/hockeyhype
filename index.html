@@ -395,6 +395,7 @@ button{font:inherit;color:inherit;}
 .vy-ikon{width:17px;height:17px;flex:none;}
 .vy-ikon-text{width:1.05em;height:1.05em;vertical-align:-.17em;margin-right:.2em;}
 .kal-head h2 .vy-ikon-text, .sektion-ikon{width:.95em;height:.95em;}
+.summary-stats .stat .l .vy-ikon-text{width:13px;height:13px;vertical-align:-2px;margin-right:4px;}
 .kal-lage .vy-ikon-text{width:14px;height:14px;vertical-align:-2px;}
 .view-toggle button:disabled{opacity:.4;cursor:not-allowed;}
 
@@ -2194,8 +2195,8 @@ function renderStandings(){
   }
 
   document.getElementById('summaryStats').innerHTML = `
-    <div class="stat"><span class="n num">${synligaSerier}</span><span class="l">Serier</span></div>
-    <div class="stat"><span class="n num">${synligaLag}</span><span class="l">Lag</span></div>
+    <div class="stat"><span class="n num">${synligaSerier}</span><span class="l">${vyIkon('serie')}Serier</span></div>
+    <div class="stat"><span class="n num">${synligaLag}</span><span class="l">${vyIkon('lag')}Lag</span></div>
   `;
 }
 
@@ -2601,9 +2602,9 @@ function updateSummary(nRows, nLag, rowsRaw){
   const nSerier = new Set((rowsRaw||[]).map(r=>r.serie)).size;
   const etikett = currentView === 'malvakt' ? 'Målvakter' : 'Spelare';
   el.innerHTML = `
-    <div class="stat"><span class="n num">${nSpelare}</span><span class="l">${etikett}</span></div>
-    <div class="stat"><span class="n num">${nLagTotal}</span><span class="l">Lag</span></div>
-    <div class="stat"><span class="n num">${nSerier}</span><span class="l">Serier valda</span></div>
+    <div class="stat"><span class="n num">${nSpelare}</span><span class="l">${vyIkon(currentView === 'malvakt' ? 'malvakt' : 'spelare')}${etikett}</span></div>
+    <div class="stat"><span class="n num">${nLagTotal}</span><span class="l">${vyIkon('lag')}Lag</span></div>
+    <div class="stat"><span class="n num">${nSerier}</span><span class="l">${vyIkon('serie')}Serier valda</span></div>
   `;
 }
 
