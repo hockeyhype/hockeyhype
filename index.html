@@ -265,6 +265,7 @@ button{font:inherit;color:inherit;}
 @media (max-width:640px){ .rail{display:none;} } /* vy-valen finns i bottombaren pa mobil */
 
 .filter-group{margin-bottom:10px;}
+.filter-group[hidden]{display:none;}
 .filter-group:last-child{margin-bottom:0;}
 .filter-group > .flabel{
   font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);
@@ -679,14 +680,14 @@ td.col-lag:hover{text-decoration:underline;text-underline-offset:2px;color:var(-
           <div class="dropdown-panel"></div>
         </div>
       </div>
-      <div class="filter-group">
+      <div class="filter-group" id="fgFodelsear">
         <span class="flabel">Födelseår</span>
         <div class="dropdown" id="ddFodelsear">
           <button class="dropdown-toggle" type="button"><span class="dt-label">Alla år</span><span class="chev">▾</span></button>
           <div class="dropdown-panel"></div>
         </div>
       </div>
-      <div class="filter-group">
+      <div class="filter-group" id="fgPosition">
         <span class="flabel">Position</span>
         <div class="dropdown" id="ddPosition">
           <button class="dropdown-toggle" type="button"><span class="dt-label">Alla positioner</span><span class="chev">▾</span></button>
@@ -1070,7 +1071,13 @@ function buildDropdown(toggleSel, panelSel, items, opts){
   toggle.textContent = summarizeLabel(selectedCount, items.length, opts.allLabel, () => opts.singleLabel(items.find(i => i.checked)));
 }
 
+// Filter som inte betyder nagot i en vy doljs dar - och galler da inte heller (ett Position-val
+// fran Spelare-vyn ska t.ex. inte tomma Malvakt-vyn eller andra lagens summor i Lag-vyn).
+const DOLDA_FILTER = { tabell: ['fgFodelsear', 'fgPosition'], lag: ['fgPosition'], malvakt: ['fgPosition'] };
+function filterDolt(id){ return (DOLDA_FILTER[currentView] || []).includes(id); }
+
 function renderFilters(){
+  ['fgFodelsear', 'fgPosition'].forEach(id => { document.getElementById(id).hidden = filterDolt(id); });
   const grupper = seasonData().grupper;
   const seasonEmpty = grupper.every(g => g.spelare.length === 0);
   document.getElementById('emptyHint').innerHTML = seasonEmpty
@@ -1324,7 +1331,7 @@ function getFilteredRows(tvingaRespekteraFilter){
       if (!sokaktiv) {
         if (excluded.has(key)) return;
         if (excludedFodelsear.has(r[3] || 'Okänt')) return;
-        if (excludedPosition.has(r[2])) return;
+        if (!filterDolt('fgPosition') && excludedPosition.has(r[2])) return;
       }
       rows.push({ serie:g.serie, kategori:g.kategori, name:r[0], lag:r[1], pos:r[2], fodelsear:r[3], gp:r[4], g:r[5], a:r[6], tp:r[7], pim:r[8] });
     });
@@ -1337,7 +1344,7 @@ function getFilteredRows(tvingaRespekteraFilter){
 // grund-uppsattning (kategori/serie/lag-nyckel).
 function getFilteredGkRows(){
   const sokaktiv = !!search;
-  if (!sokaktiv && excludedPosition.has('GK')) return []; // malvakter racknas alltid som position GK
+  if (!sokaktiv && !filterDolt('fgPosition') && excludedPosition.has('GK')) return []; // malvakter racknas alltid som position GK
   const grupper = seasonData().grupper;
   const rows = [];
   grupper.forEach(g => {
