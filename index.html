@@ -214,6 +214,7 @@ button{font:inherit;color:inherit;}
 .wordmark .wm-se{color:var(--text-faint);font-weight:500;font-size:.6em;}
 .brand .tag{margin-top:5px;}
 .brand .tag{color:var(--text-muted);font-size:13px;font-family:"Karla";font-weight:500;}
+.season-tabs[hidden]{display:none;}
 .season-tabs{display:flex;gap:6px;background:var(--surface-2);padding:4px;border-radius:999px;}
 .season-tabs button{
   border:0;background:transparent;padding:8px 16px;border-radius:999px;
@@ -983,9 +984,15 @@ function gaTillStartsidan(){
 /* ============================================================
    BUILD SEASON TABS
    ============================================================ */
+// Sasongsvaljaren ar dold sa lange det bara finns en sasong vard att visa (2025-26 har bara
+// U15 Stockholm). Satt till true nar 2027-28 kommer, sa visas den igen. Dold valjare = alltid
+// senaste sasongen, aven om en gammal adress (#2025-26/...) pekar pa en annan.
+const VISA_SASONGSVAL = false;
 function renderSeasonTabs(){
   const el = document.getElementById('seasonTabs');
+  el.hidden = !VISA_SASONGSVAL;
   el.innerHTML = '';
+  if (!VISA_SASONGSVAL) return;
   seasonList().forEach(s => {
     const btn = document.createElement('button');
     const hasData = s !== seasonList()[0];
@@ -2630,6 +2637,7 @@ function tillampaAdress(){
   resetFilters();
   search = ''; searchInputEl.value = ''; searchBoxEl.classList.remove('has-value');
   currentSeason = delar[0] && DATAINDEX.sasonger[delar[0]] ? delar.shift() : seasonList()[0];
+  if (!VISA_SASONGSVAL) currentSeason = seasonList()[0];
   const [vy, id, lagNamn] = delar;
   const g = id && seasonData().grupper.find(x => x.id === id);
   if (vy === 'serie' && g) return filtreraPaSerie(g);
@@ -2662,7 +2670,7 @@ window.addEventListener('popstate', async e => {
 // Sasongen som adressen pekar pa (#2025-26/...), om nagon
 function sasongIAdress(){
   const forsta = location.hash.replace(/^#\/?/, '').split('/')[0];
-  return DATAINDEX && DATAINDEX.sasonger[forsta] ? forsta : null;
+  return VISA_SASONGSVAL && DATAINDEX && DATAINDEX.sasonger[forsta] ? forsta : null;
 }
 
 (async function starta(){
