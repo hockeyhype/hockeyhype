@@ -395,6 +395,7 @@ button{font:inherit;color:inherit;}
 .vy-ikon{width:17px;height:17px;flex:none;}
 .vy-ikon-text{width:1.05em;height:1.05em;vertical-align:-.17em;margin-right:.2em;}
 .kal-head h2 .vy-ikon-text, .sektion-ikon{width:.95em;height:.95em;}
+th .vy-ikon-text{width:1.25em;height:1.25em;vertical-align:-.3em;margin-right:.35em;}
 .summary-stats .stat .l .vy-ikon-text{width:13px;height:13px;vertical-align:-2px;margin-right:4px;}
 .kal-lage .vy-ikon-text{width:14px;height:14px;vertical-align:-2px;}
 .view-toggle button:disabled{opacity:.4;cursor:not-allowed;}
@@ -1759,6 +1760,8 @@ const TEAM_COLS = [
   { key:'pim', label:'Utv', num:true, hint:'Lagets sammanlagda utvisningsminuter' },
 ];
 
+// Kolumnrubriker som heter som en vy far vyns ikon
+const KOLUMN_IKON = { 'Lag': 'lag', 'Spelare': 'spelare', 'Målvakt': 'malvakt' };
 function renderHead(cols){
   const head = document.getElementById('headRow');
   head.innerHTML = '';
@@ -1767,7 +1770,8 @@ function renderHead(cols){
     if (c.num) th.classList.add('num-col');
     th.classList.add('col-' + c.key);
     if (c.hint) th.title = c.hint;
-    th.innerHTML = c.label + (c.sortable === false ? '' : '<span class="arrow">▼</span>');
+    const ikon = KOLUMN_IKON[c.label];
+    th.innerHTML = (ikon ? vyIkon(ikon) : '') + c.label + (c.sortable === false ? '' : '<span class="arrow">▼</span>');
     if (c.sortable !== false) {
       if (c.key === sortKey) th.classList.add('sorted');
       th.addEventListener('click', () => {
@@ -2137,7 +2141,7 @@ function renderStandings(){
       card.appendChild(hint);
     } else {
       const table = document.createElement('table');
-      table.innerHTML = '<thead><tr><th>#</th><th>Lag</th><th>GP</th><th>W</th><th>T</th><th>L</th><th>+/-</th><th>P</th></tr></thead>';
+      table.innerHTML = `<thead><tr><th>#</th><th>${vyIkon('lag')}Lag</th><th>GP</th><th>W</th><th>T</th><th>L</th><th>+/-</th><th>P</th></tr></thead>`;
       const tbody = document.createElement('tbody');
       rader.forEach(r => {
         const [rk, lag, gp, w, t, l, gd, tp] = r;
@@ -2265,7 +2269,7 @@ function byggSerieTabellKort(g){
     return card;
   }
   const table = document.createElement('table');
-  table.innerHTML = '<thead><tr><th>#</th><th>Lag</th><th>GP</th><th>W</th><th>T</th><th>L</th><th>+/-</th><th>P</th></tr></thead>';
+  table.innerHTML = `<thead><tr><th>#</th><th>${vyIkon('lag')}Lag</th><th>GP</th><th>W</th><th>T</th><th>L</th><th>+/-</th><th>P</th></tr></thead>`;
   const tbody = document.createElement('tbody');
   rader.forEach(r => {
     const [rk, lag, gp, w, t, l, gd, tp] = r;
@@ -2317,7 +2321,7 @@ function byggSeriePoanglista(topplista){
   scroll.className = 'table-scroll';
   const table = document.createElement('table');
   table.innerHTML = `<thead><tr>
-    <th class="num-col">#</th><th>Spelare</th><th>Lag</th><th>Pos</th>
+    <th class="num-col">#</th><th>${vyIkon('spelare')}Spelare</th><th>${vyIkon('lag')}Lag</th><th>Pos</th>
     <th class="num-col">Född</th><th class="num-col">GP</th><th class="num-col">M</th><th class="num-col">A</th>
     <th class="num-col">TP</th><th class="num-col">P/G</th><th class="num-col">Utv</th>
   </tr></thead>`;
