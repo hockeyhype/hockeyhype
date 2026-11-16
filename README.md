@@ -41,6 +41,7 @@ Sidan speglar swehockey. Spelare eller uppgifter som tas bort där försvinner o
 |---|---|
 | `index.html` | Sidan |
 | `data/` | Datan per säsong och distrikt (skrivs av `dagligen.py`) |
+| `manifest.webmanifest`, `sw.js`, `ikoner/` | Gör sidan installerbar på hemskärmen (webbapp). `sw.js` hämtar alltid från nätet först och använder sparad kopia bara utan nät. Ikonerna ritas från `verktyg/appikon.svg`. |
 | `serier.json` | Vilka serier som hämtas, per distrikt (skapas av `hitta_serier.py`) |
 | `hitta_serier.py` | Letar upp alla ungdomsserier (U14–U16 pojkar och flickor) i distriktens menyer på swehockey |
 | `swehockey.py` | Hämtar och tolkar sidor från stats.swehockey.se |
