@@ -17,6 +17,18 @@
      "endast_tabell": false
     },
     {
+     "id": "22390",
+     "serie": "U16P Grupp A",
+     "kategori": "U16P",
+     "endast_tabell": false
+    },
+    {
+     "id": "22391",
+     "serie": "U16P Grupp B",
+     "kategori": "U16P",
+     "endast_tabell": false
+    },
+    {
      "id": "21454",
      "serie": "U16P Kvalserie till Grupp A",
      "kategori": "U16P",
@@ -31,6 +43,12 @@
     {
      "id": "21453",
      "serie": "U16P Röd grupp 2",
+     "kategori": "U16P",
+     "endast_tabell": false
+    },
+    {
+     "id": "22392",
+     "serie": "U16P Grupp C",
      "kategori": "U16P",
      "endast_tabell": false
     },
@@ -97,6 +115,12 @@
     {
      "id": "22210",
      "serie": "U16F DM slutspel Topp 4",
+     "kategori": "U16F",
+     "endast_tabell": false
+    },
+    {
+     "id": "22398",
+     "serie": "U16F Grupp A",
      "kategori": "U16F",
      "endast_tabell": false
     },
@@ -185,6 +209,36 @@
      "endast_tabell": false
     },
     {
+     "id": "22393",
+     "serie": "U15P Grupp A",
+     "kategori": "U15P",
+     "endast_tabell": false
+    },
+    {
+     "id": "22394",
+     "serie": "U15P Grupp B1",
+     "kategori": "U15P",
+     "endast_tabell": false
+    },
+    {
+     "id": "22395",
+     "serie": "U15P Grupp B2 nord",
+     "kategori": "U15P",
+     "endast_tabell": false
+    },
+    {
+     "id": "22396",
+     "serie": "U15P Grupp B2 syd",
+     "kategori": "U15P",
+     "endast_tabell": false
+    },
+    {
+     "id": "22397",
+     "serie": "U15P Grupp C",
+     "kategori": "U15P",
+     "endast_tabell": false
+    },
+    {
      "id": "21462",
      "serie": "U15P Kvalserie till Grupp A",
      "kategori": "U15P",
@@ -269,6 +323,30 @@
      "endast_tabell": true
     },
     {
+     "id": "22293",
+     "serie": "U14P Grupp A",
+     "kategori": "U14P",
+     "endast_tabell": true
+    },
+    {
+     "id": "22294",
+     "serie": "U14P Grupp B1",
+     "kategori": "U14P",
+     "endast_tabell": true
+    },
+    {
+     "id": "22295",
+     "serie": "U14P Grupp B2",
+     "kategori": "U14P",
+     "endast_tabell": true
+    },
+    {
+     "id": "22299",
+     "serie": "U14P Grupp D",
+     "kategori": "U14P",
+     "endast_tabell": true
+    },
+    {
      "id": "22298",
      "serie": "U14P Kval till Grupp A",
      "kategori": "U14P",
@@ -317,8 +395,26 @@
      "endast_tabell": true
     },
     {
+     "id": "22297",
+     "serie": "U14P Grupp C2",
+     "kategori": "U14P",
+     "endast_tabell": true
+    },
+    {
      "id": "21497",
      "serie": "U14F Blå grupp",
+     "kategori": "U14F",
+     "endast_tabell": true
+    },
+    {
+     "id": "22330",
+     "serie": "U14F Grupp A",
+     "kategori": "U14F",
+     "endast_tabell": true
+    },
+    {
+     "id": "22331",
+     "serie": "U14F Grupp B",
      "kategori": "U14F",
      "endast_tabell": true
     },
