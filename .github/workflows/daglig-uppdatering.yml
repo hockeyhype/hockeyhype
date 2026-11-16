@@ -51,6 +51,17 @@ jobs:
         if: steps.tid.outputs.kor == 'true'
         with:
           python-version: "3.12"
+      - name: Leta efter nya serier (måndagsmorgon och körningar för hand)
+        if: steps.tid.outputs.kor == 'true'
+        env:
+          SCHEMA: ${{ github.event.schedule }}
+        run: |
+          if [ "${{ github.event_name }}" = workflow_dispatch ] || { [ "$SCHEMA" = "0 5 * * *" ] && [ "$(date +%u)" = 1 ]; }; then
+            # Lägger bara till nya serier. Misslyckas skanningen körs uppdateringen ändå, med den gamla listan.
+            python hitta_serier.py --lagg-till || echo "::warning::Skanningen efter nya serier misslyckades - befintlig serielista används"
+          else
+            echo "Bara måndagsmorgon och körningar för hand."
+          fi
       - name: Hämta data från swehockey
         if: steps.tid.outputs.kor == 'true'
         env:
@@ -67,7 +78,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data
+          git add data serier.json
           if git diff --staged --quiet; then
             echo "Inga ändringar."
           else

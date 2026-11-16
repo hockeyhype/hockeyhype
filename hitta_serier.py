@@ -2,6 +2,8 @@
 
     python hitta_serier.py                    # region Öst, skriver serier.json
     python hitta_serier.py --distrikt Stockholm Uppland
+    python hitta_serier.py --lagg-till        # lägger bara till nya serier i befintliga serier.json
+                                              # (används av måndagskörningen)
 
 Går igenom distriktets meny på swehockey, plockar ut ungdomsligorna (U14-U16 pojkar och flickor)
 och listar säsongens grupper i varje liga. Cuper, träningsmatcher och yngre åldrar hoppas över.
@@ -92,6 +94,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--distrikt", nargs="*", default=list(DISTRIKT))
     ap.add_argument("--ut", default="serier.json")
+    ap.add_argument("--lagg-till", action="store_true",
+                    help="behåll befintliga serier och lägg bara till nya (inget tas bort automatiskt)")
     args = ap.parse_args()
 
     resultat = {"sasong": SASONG, "distrikt": {}}
@@ -120,6 +124,21 @@ def main():
             grupper.append({"id": id_, "serie": namn, "kategori": kategori(namn) or "U18H", "endast_tabell": False})
         resultat["distrikt"][f"Region {region}"] = {"region": region, "grupper": grupper}
         skriv_ut(f"Region {region}", grupper)
+    if args.lagg_till and os.path.exists(args.ut):
+        # Lägger bara till. En serie som saknas i menyn (eller en sida som inte gick att läsa)
+        # ska inte få serier att försvinna från sidan - borttagning görs för hand.
+        gamla = json.load(open(args.ut, encoding="utf8"))
+        kanda_id = {g["id"] for v in gamla["distrikt"].values() for g in v["grupper"]}
+        nya = []
+        for d, v in resultat["distrikt"].items():
+            mal = gamla["distrikt"].setdefault(d, {"region": v["region"], "grupper": []})
+            for g in v["grupper"]:
+                if g["id"] not in kanda_id:
+                    mal["grupper"].append(g)
+                    nya.append(f"{d}: {g['serie']} ({g['id']})")
+        resultat = gamla
+        print(f"\nNYA SERIER: {len(nya)}")
+        print("\n".join("  " + n for n in nya))
     open(args.ut, "w", encoding="utf8").write(json.dumps(resultat, ensure_ascii=False, indent=1))
 
 
