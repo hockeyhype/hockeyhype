@@ -266,6 +266,8 @@ button{font:inherit;color:inherit;}
 
 .filter-group{margin-bottom:10px;}
 .filter-group[hidden]{display:none;}
+.standings-card tr.vald-lag td{background:var(--accent-soft);font-weight:700;}
+.dp-item .chip{flex:none;}
 .filter-group:last-child{margin-bottom:0;}
 .filter-group > .flabel{
   font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);
@@ -1215,44 +1217,43 @@ function renderFilters(){
   });
 
   // ---- Lag ----
-  // Ett lag kan forekomma i flera serier (t.ex. bade en Bla- och en Rod-grupp) - da ska det
-  // anda bara visas som ETT val i filtret. Vi grupperar darfor pa lagnamn och samlar ihop alla
-  // serie+lag-nycklar (som exkluderings-sets faktiskt anvander) bakom respektive lagnamn.
+  // En rad per lag och aldersklass ("AIK U15P", "AIK U16P"). Spelar laget i flera serier i samma
+  // aldersklass (t.ex. hostens grupp och varens) ar det anda en rad; bakom den ligger alla
+  // serie+lag-nycklar som exkluderings-setet anvander.
   const relevantSerier = relevantGrupper.filter(g => !excludedSeries.has(g.serie));
-  const lagNycklarPerNamn = new Map();
+  const lagRader = new Map();
   relevantSerier.forEach(g => {
-    // Unionen av lag fran bade spelare och malvakter - annars skulle ett lag med enbart
-    // en malvakt (och ingen listad utespelare) sakna en egen rad i filtret.
-    const lagIGruppen = lagIGrupp(g);
-    lagIGruppen.forEach(lag => {
-      if (!lagNycklarPerNamn.has(lag)) lagNycklarPerNamn.set(lag, []);
-      lagNycklarPerNamn.get(lag).push(g.serie+'||'+lag);
+    lagIGrupp(g).forEach(lag => {
+      const id = lag + '||' + g.kategori;
+      if (!lagRader.has(id)) lagRader.set(id, { lag, kategori: g.kategori, nycklar: [] });
+      lagRader.get(id).nycklar.push(g.serie + '||' + lag);
     });
   });
-  const lagNamn = [...lagNycklarPerNamn.keys()].sort((a,b) => a.localeCompare(b, 'sv'));
-  buildDropdown('#ddLag .dropdown-toggle', '.dropdown-panel', lagNamn.map(lag => {
-    const nycklar = lagNycklarPerNamn.get(lag);
-    return {
-      key: lag,
-      checked: nycklar.some(k => !excluded.has(k)),
-      label: lag,
-      render(row){
-        row.insertAdjacentHTML('beforeend', lagLogoHtml(lag));
-        const label = document.createElement('span');
-        label.className = 'label'; label.textContent = lag;
-        row.appendChild(label);
-      },
-      onChange(isChecked){
-        if (isChecked) nycklar.forEach(k => excluded.delete(k));
-        else nycklar.forEach(k => excluded.add(k));
-      },
-    };
-  }), {
+  const lagLista = [...lagRader.values()].sort((a, b) =>
+    a.lag.localeCompare(b.lag, 'sv') || kategoriOrdning(a.kategori) - kategoriOrdning(b.kategori));
+  buildDropdown('#ddLag .dropdown-toggle', '.dropdown-panel', lagLista.map(({ lag, kategori, nycklar }) => ({
+    key: lag + '||' + kategori,
+    checked: nycklar.some(k => !excluded.has(k)),
+    label: `${lag} ${kategori}`,
+    render(row){
+      row.insertAdjacentHTML('beforeend', lagLogoHtml(lag));
+      const label = document.createElement('span');
+      label.className = 'label'; label.textContent = lag;
+      const chip = document.createElement('span');
+      chip.className = 'chip ' + kategoriChipClass(kategori);
+      chip.textContent = kategori;
+      row.appendChild(label); row.appendChild(chip);
+    },
+    onChange(isChecked){
+      if (isChecked) nycklar.forEach(k => excluded.delete(k));
+      else nycklar.forEach(k => excluded.add(k));
+    },
+  })), {
     allLabel: 'Alla lag',
     singleLabel: item => item.label,
     emptyText: 'Välj minst en serie ovan.',
-    onSelectAll: () => lagNycklarPerNamn.forEach(nycklar => nycklar.forEach(k => excluded.delete(k))),
-    onSelectNone: () => lagNycklarPerNamn.forEach(nycklar => nycklar.forEach(k => excluded.add(k))),
+    onSelectAll: () => lagRader.forEach(r => r.nycklar.forEach(k => excluded.delete(k))),
+    onSelectNone: () => lagRader.forEach(r => r.nycklar.forEach(k => excluded.add(k))),
   });
 
   // ---- Födelseår ----
@@ -1899,7 +1900,12 @@ function renderStandings(){
   // serie/ålderskategori som helst, aven om den ar bortfiltrerad i sidopanelen; byggKort()
   // dolier anda korten som inte matchar sokningen.
   const grupper = seasonData().grupper;
-  const relevantGrupper = search ? grupper : grupper.filter(g => !excludedKategori.has(g.kategori) && !excludedSeries.has(g.serie));
+  let relevantGrupper = search ? grupper : grupper.filter(g => !excludedKategori.has(g.kategori) && !excludedSeries.has(g.serie));
+  // Ar Lag-filtret begransat visas bara serierna dar nagot av de valda lagen spelar, och lagen
+  // markeras i tabellerna
+  const lagValt = (g, lag) => !excluded.has(g.serie + '||' + lag);
+  const lagFilterAktivt = !search && relevantGrupper.some(g => [...lagIGrupp(g)].some(l => !lagValt(g, l)));
+  if (lagFilterAktivt) relevantGrupper = relevantGrupper.filter(g => [...lagIGrupp(g)].some(l => lagValt(g, l)));
 
   // Nålade favoritserier lyfts ut i en egen sektion HOGST UPP, ovanfor alla ålderskategorier
   // (inte bara forst inom sin egen ålderskategori) - det var det som efterfragades. Ovriga
@@ -1974,6 +1980,7 @@ function renderStandings(){
         const gdCls = gd > 0 ? 'gd-pos' : gd < 0 ? 'gd-neg' : '';
         const gdTxt = gd > 0 ? `+${gd}` : `${gd}`;
         const tr = document.createElement('tr');
+        if (lagFilterAktivt && lagValt(g, lag)) tr.className = 'vald-lag';
         tr.innerHTML = `<td>${rk ?? ''}</td><td><span class="lag-cell">${lagLogoHtml(lag)}<span class="lag-text" title="${lag}">${lag}</span></span></td><td>${gp}</td><td>${w}</td><td>${t}</td><td>${l}</td><td class="${gdCls}">${gdTxt}</td><td class="tp">${tp}</td>`;
         tr.addEventListener('click', () => filtreraPaLag(lag, g.serie));
         tbody.appendChild(tr);
