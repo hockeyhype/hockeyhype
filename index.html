@@ -1220,13 +1220,22 @@ function renderFilters(){
   // En rad per lag och aldersklass ("AIK U15P", "AIK U16P"). Spelar laget i flera serier i samma
   // aldersklass (t.ex. hostens grupp och varens) ar det anda en rad; bakom den ligger alla
   // serie+lag-nycklar som exkluderings-setet anvander.
+  // Raderna kommer fran de serier som syns just nu, men varje rad styr lagets nycklar i ALLA
+  // sasongens serier i aldersklassen. Annars skulle ett lag man avmarkerat dyka upp igen nar
+  // t.ex. Seriestatus eller Distrikt vidgas och fler serier kommer med.
   const relevantSerier = relevantGrupper.filter(g => !excludedSeries.has(g.serie));
+  const sasongensGrupper = RAW[currentSeason].grupper;
+  const allaNycklar = new Map();
+  sasongensGrupper.forEach(g => lagIGrupp(g).forEach(lag => {
+    const id = lag + '||' + g.kategori;
+    if (!allaNycklar.has(id)) allaNycklar.set(id, []);
+    allaNycklar.get(id).push(g.serie + '||' + lag);
+  }));
   const lagRader = new Map();
   relevantSerier.forEach(g => {
     lagIGrupp(g).forEach(lag => {
       const id = lag + '||' + g.kategori;
-      if (!lagRader.has(id)) lagRader.set(id, { lag, kategori: g.kategori, nycklar: [] });
-      lagRader.get(id).nycklar.push(g.serie + '||' + lag);
+      if (!lagRader.has(id)) lagRader.set(id, { lag, kategori: g.kategori, nycklar: allaNycklar.get(id) });
     });
   });
   const lagLista = [...lagRader.values()].sort((a, b) =>
@@ -1252,8 +1261,8 @@ function renderFilters(){
     allLabel: 'Alla lag',
     singleLabel: item => item.label,
     emptyText: 'Välj minst en serie ovan.',
-    onSelectAll: () => lagRader.forEach(r => r.nycklar.forEach(k => excluded.delete(k))),
-    onSelectNone: () => lagRader.forEach(r => r.nycklar.forEach(k => excluded.add(k))),
+    onSelectAll: () => allaNycklar.forEach(nycklar => nycklar.forEach(k => excluded.delete(k))),
+    onSelectNone: () => allaNycklar.forEach(nycklar => nycklar.forEach(k => excluded.add(k))),
   });
 
   // ---- Födelseår ----
