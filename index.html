@@ -481,6 +481,7 @@ td.col-lag:hover{text-decoration:underline;text-underline-offset:2px;color:var(-
 .lag-vy-pin{font-size:22px;margin-left:4px;color:var(--text-muted);}
 .lag-rad-namn{display:inline-flex;align-items:center;gap:6px;}
 .lag-rad-pin{font-size:15px;color:var(--text-faint);padding:0;}
+.lag-rad-kat{display:none;flex:none;} /* pa mobil, dar Kategori-kolumnen ar dold */
 .kal-lage{display:inline-flex;gap:2px;background:var(--surface-2);padding:3px;border-radius:8px;}
 .kal-lage button{border:0;background:transparent;padding:6px 12px;border-radius:6px;cursor:pointer;font:inherit;font-size:12.5px;font-weight:600;color:var(--text-muted);}
 .kal-lage button.active{background:var(--accent);color:#fff;}
@@ -664,6 +665,10 @@ td.col-lag:hover{text-decoration:underline;text-underline-offset:2px;color:var(-
   .detail-row td{padding:10px 10px 10px 16px;}
   /* Dolj de minst kritiska kolumnerna - fullstandig data finns fortfarande vid stapelvis eller pa dator */
   .col-rk,.col-pos,.col-fodelsear,.col-pim,.col-kategori{display:none;}
+  .lag-rad-kat{display:inline-flex;}
+  .col-antal{display:none;} /* Lag-vyn: antal spelare far ge plats at P/G */
+  .lag-rad-namn{flex-wrap:wrap;row-gap:3px;}
+  .lag-rad-namn .full{white-space:normal;overflow-wrap:anywhere;}
   /* Malvakt-vyn har fler kolumner an de andra - dolj de rakuppgifter som ocksa syns i
      procent/snitt-form (SVS%/GAA), sa GP/SVS%/GAA/SO/W/L far plats. */
   .col-ga,.col-sog,.col-svs{display:none;}
@@ -2004,7 +2009,7 @@ function renderTable(){
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td class="rk num col-rk">${i+1}</td>
-        <td class="col-lag"><span class="lag-rad-namn">${lagStjarna(t.lag, t.kategori, 'lag-rad-pin')}<span class="full" style="font-weight:600">${t.lag}</span></span></td>
+        <td class="col-lag"><span class="lag-rad-namn">${lagStjarna(t.lag, t.kategori, 'lag-rad-pin')}<span class="full" style="font-weight:600">${t.lag}</span><span class="chip ${kategoriChipClass(t.kategori)} lag-rad-kat">${t.kategori}</span></span></td>
         <td class="col-kategori"><span class="chip ${kategoriChipClass(t.kategori)}">${t.kategori}</span></td>
         <td class="num-col num col-antal">${t.antal}</td>
         <td class="num-col num col-gp">${t.gp}</td>
