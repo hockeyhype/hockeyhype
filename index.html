@@ -481,6 +481,7 @@ td.col-lag:hover{text-decoration:underline;text-underline-offset:2px;color:var(-
 .lag-vy-pin{font-size:22px;margin-left:4px;color:var(--text-muted);}
 .lag-rad-namn{display:inline-flex;align-items:center;gap:6px;}
 .lag-rad-pin{font-size:15px;color:var(--text-faint);padding:0;}
+tr.favorit-lag-rad td{background:var(--accent-soft);}
 .lag-rad-kat{display:none;flex:none;} /* pa mobil, dar Kategori-kolumnen ar dold */
 .kal-lage{display:inline-flex;gap:2px;background:var(--surface-2);padding:3px;border-radius:8px;}
 .kal-lage button{border:0;background:transparent;padding:6px 12px;border-radius:6px;cursor:pointer;font:inherit;font-size:12.5px;font-weight:600;color:var(--text-muted);}
@@ -2005,10 +2006,18 @@ function renderTable(){
     let teams = aggregateTeams(rowsRaw).filter(t => matchesSearch(t.lag));
     teams = sortRows(teams);
     if (teams.length === 0) { showEmpty(); updateSummary(0,0); return; }
+    // Favoritlagen overst (i samma inbordes ordning) - placeringssiffran ar fortfarande lagets
+    // plats i hela den sorterade listan
+    const placering = new Map(teams.map((t, i) => [t, i + 1]));
+    const arFavorit = t => favoritLag.has(favoritLagNyckel(t.lag, t.kategori));
+    const antalFavoriter = teams.filter(arFavorit).length;
+    teams = [...teams.filter(arFavorit), ...teams.filter(t => !arFavorit(t))];
     teams.forEach((t, i) => {
+      if (antalFavoriter && antalFavoriter < teams.length && i === antalFavoriter) urvalsRad(body, TEAM_COLS.length, 'Övriga lag');
       const tr = document.createElement('tr');
+      if (arFavorit(t)) tr.className = 'favorit-lag-rad';
       tr.innerHTML = `
-        <td class="rk num col-rk">${i+1}</td>
+        <td class="rk num col-rk">${placering.get(t)}</td>
         <td class="col-lag"><span class="lag-rad-namn">${lagStjarna(t.lag, t.kategori, 'lag-rad-pin')}<span class="full" style="font-weight:600">${t.lag}</span><span class="chip ${kategoriChipClass(t.kategori)} lag-rad-kat">${t.kategori}</span></span></td>
         <td class="col-kategori"><span class="chip ${kategoriChipClass(t.kategori)}">${t.kategori}</span></td>
         <td class="num-col num col-antal">${t.antal}</td>
