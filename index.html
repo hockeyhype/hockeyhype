@@ -191,6 +191,13 @@ button{font:inherit;color:inherit;}
   padding-bottom:16px;margin-bottom:16px;
   border-bottom:2px solid var(--accent);
 }
+.tillbaka-knapp{
+  flex:none;display:flex;align-items:center;justify-content:center;width:40px;height:40px;margin-right:-4px;
+  border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--text);cursor:pointer;
+}
+.tillbaka-knapp[hidden]{display:none;}
+.tillbaka-knapp + .brand{margin-right:auto;}
+.tillbaka-knapp svg{width:22px;height:22px;}
 .brand{display:flex;align-items:baseline;gap:10px;cursor:pointer;border-radius:10px;transition:opacity .15s;}
 .brand:hover{opacity:.85;}
 .brand:focus-visible{outline:2px solid var(--accent);outline-offset:4px;}
@@ -223,7 +230,8 @@ button{font:inherit;color:inherit;}
 
 /* ---------- Layout ---------- */
 .layout{display:grid;grid-template-columns:170px 1fr;gap:22px;align-items:start;}
-@media (max-width:860px){.layout{grid-template-columns:1fr;}}
+@media (max-width:860px){.layout{grid-template-columns:minmax(0,1fr);}}
+.layout > main{min-width:0;} /* annars kan bred text (lagnamn, matcher) gora sidan bredare an skarmen */
 
 /* ---------- Filter rail ---------- */
 .rail{
@@ -525,6 +533,9 @@ td.col-lag:hover{text-decoration:underline;text-underline-offset:2px;color:var(-
      sidan blir kvar inzoomad efterat, vilket forstor bade layouten och skrollningen
      till traffarna. 16px racker for att undvika det helt. */
   .search-box input{font-size:16px;}
+  /* Kompaktare huvud: undertexten tar en hel rad och sager inget nytt pa en liten skarm */
+  .topbar{gap:10px 12px;padding-bottom:12px;margin-bottom:12px;}
+  .brand .tag{display:none;}
 }
 
 /* ---------- Fastnalad bottombar (bara mobil) - snabbnavigering + uppdaterad-info,
@@ -583,6 +594,14 @@ td.col-lag:hover{text-decoration:underline;text-underline-offset:2px;color:var(-
   .filter-bar .rail-actions button{padding:6px 8px;font-size:11.5px;}
   .filter-bar .dropdown-panel{min-width:0;}
 }
+/* Pa telefon blir filterlistorna ett ark over bottenmenyn i hela skarmens bredd - i den smala
+   tvakolumnslayouten blev de annars for trånga for lagnamn */
+@media (max-width:640px){
+  .filter-bar .dropdown-panel{
+    position:fixed;left:8px;right:8px;top:auto;bottom:calc(var(--bottombar-h, 84px) + 8px);
+    max-height:min(60vh, 480px);z-index:45;box-shadow:0 -8px 28px rgba(0,0,0,.35);
+  }
+}
 
 /* ---------- Kompakt lage pa sma telefoner ---------- */
 @media (max-width:480px){
@@ -604,6 +623,9 @@ td.col-lag:hover{text-decoration:underline;text-underline-offset:2px;color:var(-
      (langtryck/hovra) och pa storre skarmar - annars far Lag-kolumnen inte plats bredvid siffrorna */
   .lag-text{display:none;}
   .lag-logo{width:22px;height:22px;font-size:8.5px;}
+  /* ...men i serietabellerna ar lagnamnet det viktigaste - dar far det synas och radbrytas */
+  .standings-card .lag-text{display:block;font-size:11.5px;}
+  .standings-card .lag-cell{gap:6px;}
 
   .standings-grid{grid-template-columns:1fr;gap:10px;}
   .standings-card th{padding:5px 5px;font-size:9.5px;}
@@ -617,6 +639,9 @@ td.col-lag:hover{text-decoration:underline;text-underline-offset:2px;color:var(-
 
 <div class="app">
   <div class="topbar">
+    <button type="button" class="tillbaka-knapp" id="tillbakaKnapp" hidden aria-label="Tillbaka" title="Tillbaka">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+    </button>
     <div class="brand" id="brandHome" role="button" tabindex="0" title="Till startsidan (Tabell, alla filter återställda)">
       <div>
         <h1 class="wordmark" aria-label="hockeyhype.se">hockey<span class="wm-hype">hype</span><span class="wm-se">.se</span></h1>
@@ -858,9 +883,10 @@ function seasonData(){
   if (!s || statusUndantag()) return alla;
   if (excludedStatus === null) excludedStatus = standardStatus();
   if (!excludedStatus.size) return alla;
-  const nyckel = s._nyckel + '§' + [...excludedStatus].join('|') + '§' + isoDatum(new Date());
+  const nyckel = s._nyckel + '§' + [...excludedStatus].join('|') + '§' + isoDatum(new Date()) + '§' + [...favoritSerier].join('|');
   if (s._statusNyckel !== nyckel) {
-    s._statusVy = { ...alla, grupper: alla.grupper.filter(g => !excludedStatus.has(serieStatus(g))) };
+    // Favoritserier syns alltid, oavsett status
+    s._statusVy = { ...alla, grupper: alla.grupper.filter(g => favoritSerier.has(g.id) || !excludedStatus.has(serieStatus(g))) };
     s._statusNyckel = nyckel;
   }
   return s._statusVy;
@@ -2511,6 +2537,9 @@ document.addEventListener('click', e => {
 function syncTopbarHeight(){
   const h = document.querySelector('.topbar').getBoundingClientRect().height;
   document.documentElement.style.setProperty('--topbar-h', h + 'px');
+  // Bottenmenyns hojd (bara mobil) - filterarken lagger sig ovanfor den
+  const bb = document.querySelector('.bottom-bar');
+  if (bb && bb.offsetHeight) document.documentElement.style.setProperty('--bottombar-h', bb.offsetHeight + 'px');
 }
 window.addEventListener('resize', syncTopbarHeight);
 
@@ -2572,10 +2601,21 @@ function syncHistorik(){
     // En pagaende sokning ar ett enda steg: vybyten medan man skriver ersatter steget i stallet
     // for att lagga till nya, sa att bakat gar tillbaka till dar sokningen borjade
     const sammaSokning = sokNavigering && history.state && history.state.search && s.search;
-    if (history.state && history.state.hockeyhype && navNyckel(history.state) !== navNyckel(s) && !sammaSokning) history.pushState(s, '', adressFor(s));
-    else history.replaceState(s, '', adressFor(s));
+    // steg = hur manga steg in i sidan man ar - styr tillbaka-knappen i appversionen
+    const forra = history.state && history.state.hockeyhype ? history.state : null;
+    if (forra && navNyckel(forra) !== navNyckel(s) && !sammaSokning) history.pushState({ ...s, steg: (forra.steg || 0) + 1 }, '', adressFor(s));
+    else history.replaceState({ ...s, steg: forra ? (forra.steg || 0) : 0 }, '', adressFor(s));
   } catch (e) { /* historiken ar inte tillganglig (t.ex. i en inbaddad forhandsvisning) */ }
+  visaTillbaka();
 }
+// Installerad som app (fran hemskarmen) finns ingen webblasarknapp for bakat - da visas en egen
+// tillbaka-knapp nar man har klickat sig in i sidan. I en vanlig webblasare doljs den.
+const ARAPP = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+function visaTillbaka(){
+  const steg = history.state && history.state.steg || 0;
+  document.getElementById('tillbakaKnapp').hidden = !(ARAPP && steg > 0);
+}
+document.getElementById('tillbakaKnapp').addEventListener('click', () => history.back());
 // Oppnar vyn som adressen pekar ut - vid sidladdning och om nagon andrar adressen for hand
 function tillampaAdress(){
   const delar = location.hash.replace(/^#\/?/, '').split('/').filter(Boolean).map(d => {
@@ -2610,6 +2650,7 @@ window.addEventListener('popstate', async e => {
   document.querySelectorAll('.view-toggle button').forEach(b => b.classList.toggle('active', b.dataset.view === currentView));
   renderAll();
   aterstaller = false;
+  visaTillbaka();
 });
 
 // Sasongen som adressen pekar pa (#2025-26/...), om nagon
