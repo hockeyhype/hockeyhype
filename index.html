@@ -1597,25 +1597,37 @@ function byggLagGPUppslag(){
 }
 
 function aggregateTeams(rows){
-  // Nyckeln ar serie+lag, INTE bara lagnamnet - tva olika lag i tva olika serier kan raka
-  // heta samma sak (t.ex. "AIK" i bade en U15- och en U16-serie), och ska da rakas som
-  // tva separata rader, inte slas ihop till en.
+  // En rad per lag och aldersklass ("AIK U16P"), aven nar laget spelar i flera serier i samma
+  // aldersklass (t.ex. hostens grupp och varens) - samma indelning som Lag-filtret. Lag med samma
+  // namn i olika aldrar (AIK U15P och AIK U16P) ar olika lag och blir olika rader.
   const lagGPUppslag = byggLagGPUppslag();
   const map = new Map();
   rows.forEach(r => {
-    const key = r.serie + '||' + r.lag;
-    if (!map.has(key)) map.set(key, { lag:r.lag, serie:r.serie, kategori:r.kategori, spelareSet:new Set(), g:0, a:0, tp:0, pim:0 });
+    const key = r.lag + '||' + r.kategori;
+    if (!map.has(key)) map.set(key, { lag:r.lag, kategori:r.kategori, serier:new Set(), spelareSet:new Set(), g:0, a:0, tp:0, pim:0 });
     const t = map.get(key);
+    t.serier.add(r.serie);
     t.spelareSet.add(r.name);
     t.g += r.g; t.a += r.a; t.tp += r.tp; t.pim += r.pim;
   });
   return [...map.values()].map(t => {
-    const gp = lagGPUppslag[t.serie+'||'+t.lag] || 0;
+    const serier = [...t.serier];
+    const gp = serier.reduce((sum, serie) => sum + (lagGPUppslag[serie+'||'+t.lag] || 0), 0);
     return {
-      lag:t.lag, serie:t.serie, kategori:t.kategori, antal:t.spelareSet.size, gp, g:t.g, a:t.a, tp:t.tp, pim:t.pim,
-      pg: gp > 0 ? +(t.tp/gp).toFixed(2) : null,
+      lag:t.lag, serie:valjSerieForLag(t.lag, serier), serier, kategori:t.kategori, antal:t.spelareSet.size, gp,
+      g:t.g, a:t.a, tp:t.tp, pim:t.pim, pg: gp > 0 ? +(t.tp/gp).toFixed(2) : null,
     };
   });
+}
+// Vilken av lagets serier ett klick i Lag-vyn ska oppna: en pagaende serie forst, annars den
+// dar laget spelade senast.
+function valjSerieForLag(lag, serier){
+  if (serier.length === 1) return serier[0];
+  const grupper = serier.map(namn => seasonDataAlla().grupper.find(g => g.serie === namn)).filter(Boolean);
+  const senast = g => ((g.matcher && g.matcher.spelade) || []).filter(m => m[1] === lag || m[2] === lag)
+    .reduce((max, m) => m[0] > max ? m[0] : max, '');
+  grupper.sort((a, b) => (serieStatus(b) === 'pagaende') - (serieStatus(a) === 'pagaende') || senast(b).localeCompare(senast(a)));
+  return grupper.length ? grupper[0].serie : serier[0];
 }
 
 // MIP (speltid i mal) kommer som "mm:ss" - racknas om till sekunder for att kunna
