@@ -280,6 +280,37 @@ button{font:inherit;color:inherit;}
 
 .filter-group{margin-bottom:10px;}
 .filter-group[hidden]{display:none;}
+.filter-panel[hidden]{display:none;}
+/* ---------- Kalender (kommande matcher i favoritserierna) ---------- */
+.kal-head{display:flex;align-items:baseline;justify-content:space-between;gap:4px 12px;flex-wrap:wrap;margin-bottom:12px;}
+.kal-head h2{font-size:20px;}
+.kal-head p{font-size:13px;color:var(--text-muted);margin:0;}
+.kal-favs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:18px;}
+.kal-fav{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);
+  border-radius:999px;padding:4px 10px 4px 4px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit;}
+.kal-fav:hover{border-color:var(--accent);}
+.kal-dag{margin-bottom:18px;}
+.kal-dag h3{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);font-family:"Karla";font-weight:700;margin-bottom:8px;}
+.kal-dag h3 .idag{color:var(--accent);}
+.kal-rad{display:grid;grid-template-columns:54px minmax(0,1fr);gap:6px 12px;align-items:center;
+  background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:10px 14px;margin-bottom:8px;}
+.kal-tid{font-family:"Oswald";font-size:15px;font-weight:600;font-variant-numeric:tabular-nums;grid-row:span 2;}
+.kal-tid.ej{font-family:"Karla";font-size:10.5px;font-weight:500;color:var(--text-faint);line-height:1.2;}
+.kal-lag{display:flex;align-items:center;gap:8px;min-width:0;}
+.kal-lag .match-team{flex:0 1 auto;cursor:pointer;}
+.kal-lag .match-team:last-child{flex-direction:row;text-align:left;}
+.kal-lag .vs{flex:none;font-size:10.5px;color:var(--text-faint);text-transform:uppercase;font-weight:600;}
+.kal-info{display:flex;align-items:center;gap:6px;min-width:0;font-size:11.5px;color:var(--text-faint);}
+.kal-info .chip{flex:none;}
+.kal-info .kal-serie{cursor:pointer;color:var(--text-muted);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.kal-info .kal-serie:hover{color:var(--accent);}
+.kal-info .arena{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+@media (max-width:480px){
+  /* Lagen pa varsin rad sa att namnen far plats */
+  .kal-lag{flex-direction:column;align-items:flex-start;gap:5px;}
+  .kal-lag .vs{display:none;}
+  .kal-rad{grid-template-columns:46px minmax(0,1fr);padding:10px 12px;gap:6px 10px;}
+}
 .standings-card tr.vald-lag td{background:var(--accent-soft);font-weight:700;}
 .dp-item .chip{flex:none;}
 .filter-group:last-child{margin-bottom:0;}
@@ -677,6 +708,7 @@ td.col-lag:hover{text-decoration:underline;text-underline-offset:2px;color:var(-
         <button data-view="lag">Lag</button>
         <button data-view="spelare">Spelare</button>
         <button data-view="malvakt">Målvakt</button>
+        <button data-view="kalender" title="Kommande matcher i dina favoritserier">Kalender</button>
         <button data-view="serie" class="serie-view-btn" disabled title="Filtrera fram en enskild serie, eller klicka på en serie i Tabell-vyn">Serie</button>
       </div>
     </aside>
@@ -760,6 +792,7 @@ td.col-lag:hover{text-decoration:underline;text-underline-offset:2px;color:var(-
       <div id="standingsSection" hidden></div>
       <div id="serieSection" hidden></div>
       <div id="lagSection" hidden></div>
+      <div id="kalenderSection" hidden></div>
     </main>
   </div>
   <div class="footnote">
@@ -774,6 +807,7 @@ td.col-lag:hover{text-decoration:underline;text-underline-offset:2px;color:var(-
     <button data-view="lag">Lag</button>
     <button data-view="spelare">Spelare</button>
     <button data-view="malvakt">Målvakt</button>
+    <button data-view="kalender" title="Kommande matcher i dina favoritserier">Kalender</button>
     <button data-view="serie" class="serie-view-btn" disabled title="Filtrera fram en enskild serie, eller klicka på en serie i Tabell-vyn">Serie</button>
   </div>
   <div class="bottom-bar-footer" id="bottomBarFooter" title="Data hämtad från Svenska Ishockeyförbundets statistiksida, allmänt tillgänglig."></div>
@@ -1130,6 +1164,8 @@ function filterDolt(id){ return (DOLDA_FILTER[currentView] || []).includes(id); 
 
 function renderFilters(){
   ['fgFodelsear', 'fgPosition'].forEach(id => { document.getElementById(id).hidden = filterDolt(id); });
+  // Kalendern visar favoritserierna - filtren behovs inte dar
+  document.getElementById('filterPanel').hidden = currentView === 'kalender';
   const grupper = seasonData().grupper;
   const seasonEmpty = grupper.every(g => g.spelare.length === 0);
   document.getElementById('emptyHint').innerHTML = seasonEmpty
@@ -1775,11 +1811,13 @@ function sortSpelare(rows){
 
 function renderTable(){
   syncHistorik();
-  document.getElementById('tableCard').hidden = currentView === 'tabell' || currentView === 'serie' || currentView === 'lagdetalj';
+  document.getElementById('tableCard').hidden = ['tabell', 'serie', 'lagdetalj', 'kalender'].includes(currentView);
   document.getElementById('standingsSection').hidden = currentView !== 'tabell';
   document.getElementById('serieSection').hidden = currentView !== 'serie';
   document.getElementById('lagSection').hidden = currentView !== 'lagdetalj';
+  document.getElementById('kalenderSection').hidden = currentView !== 'kalender';
   if (currentView === 'tabell') { renderStandings(); return; }
+  if (currentView === 'kalender') { renderKalender(); return; }
   if (currentView === 'serie') { renderSerieVy(); return; }
   if (currentView === 'lagdetalj') { renderLagVy(); return; }
 
@@ -2293,6 +2331,89 @@ function renderSerieVy(){
   updateSummary(antal, 0, rowsRaw);
 }
 
+// ---- Kalender: kommande matcher i favoritserierna, dag for dag ----
+const VECKODAGAR = ['söndag', 'måndag', 'tisdag', 'onsdag', 'torsdag', 'fredag', 'lördag'];
+const MANADER = ['januari', 'februari', 'mars', 'april', 'maj', 'juni', 'juli', 'augusti', 'september', 'oktober', 'november', 'december'];
+function kalenderDag(iso){
+  const d = new Date(iso + 'T12:00:00');
+  const idag = isoDatum(new Date());
+  const namn = `${VECKODAGAR[d.getDay()]} ${d.getDate()} ${MANADER[d.getMonth()]}`;
+  if (iso === idag) return `<span class="idag">I dag</span> · ${namn}`;
+  if (iso === plusDagar(idag, 1)) return `<span class="idag">I morgon</span> · ${namn}`;
+  return namn.charAt(0).toUpperCase() + namn.slice(1);
+}
+function renderKalender(){
+  const el = document.getElementById('kalenderSection');
+  el.innerHTML = '';
+  const favoriter = seasonDataAlla().grupper.filter(g => favoritSerier.has(g.id))
+    .sort((a, b) => kategoriOrdning(a.kategori) - kategoriOrdning(b.kategori) || a.serie.localeCompare(b.serie, 'sv'));
+
+  const head = document.createElement('div');
+  head.className = 'kal-head';
+  head.innerHTML = '<h2>Kalender</h2><p>Kommande matcher i dina favoritserier</p>';
+  el.appendChild(head);
+
+  if (!favoriter.length) {
+    el.insertAdjacentHTML('beforeend', `<div class="table-card"><div class="empty-state"><div class="big">Inga favoritserier ännu</div>
+      Tryck på stjärnan ☆ vid en serie i Tabell-vyn (eller i serievyn) så samlas seriens kommande matcher här.</div></div>`);
+    updateSummary(0, 0);
+    return;
+  }
+
+  // Favoritserierna som knappar - ett tryck oppnar serien
+  const favs = document.createElement('div');
+  favs.className = 'kal-favs';
+  favoriter.forEach(g => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'kal-fav';
+    const kort = g.serie.startsWith(g.kategori) ? g.serie.slice(g.kategori.length).trim() : g.serie;
+    b.innerHTML = `<span class="chip ${kategoriChipClass(g.kategori)}">${g.kategori}</span>${kort}`;
+    b.title = `Öppna ${g.serie}`;
+    b.addEventListener('click', () => filtreraPaSerie(g));
+    favs.appendChild(b);
+  });
+  el.appendChild(favs);
+
+  const idag = isoDatum(new Date());
+  const matcher = favoriter.flatMap(g => ((g.matcher && g.matcher.kommande) || []).map(m => ({ g, m })))
+    .filter(({ m }) => String(m[0]).slice(0, 10) >= idag)
+    .filter(({ g, m }) => !search || matchesSearch(m[1]) || matchesSearch(m[2]) || matchesSearch(g.serie))
+    .sort((a, b) => String(a.m[0]).localeCompare(String(b.m[0])) || a.g.serie.localeCompare(b.g.serie, 'sv'));
+
+  if (!matcher.length) {
+    el.insertAdjacentHTML('beforeend', `<div class="table-card"><div class="empty-state"><div class="big">Inga kommande matcher</div>
+      ${search ? 'Inga kommande matcher matchar sökningen.' : 'Det finns inga kommande matcher inlagda i dina favoritserier just nu.'}</div></div>`);
+    updateSummary(0, 0);
+    return;
+  }
+
+  let dag = null, dagEl = null;
+  matcher.forEach(({ g, m }) => {
+    const [datumTid, hemma, borta, arena] = m;
+    const [datum, tid] = String(datumTid).split(' ');
+    if (datum !== dag) {
+      dag = datum;
+      dagEl = document.createElement('section');
+      dagEl.className = 'kal-dag';
+      dagEl.innerHTML = `<h3>${kalenderDag(datum)}</h3>`;
+      el.appendChild(dagEl);
+    }
+    const rad = document.createElement('div');
+    rad.className = 'kal-rad';
+    const harTid = tid && tid !== '00:00';
+    rad.innerHTML = `<span class="kal-tid${harTid ? '' : ' ej'}">${harTid ? tid : 'Tid ej satt'}</span>
+      <span class="kal-lag"><span class="match-team" data-lag="h">${lagLogoHtml(hemma)}<span class="match-team-name">${hemma}</span></span>
+        <span class="vs">vs</span>
+        <span class="match-team" data-lag="b">${lagLogoHtml(borta)}<span class="match-team-name">${borta}</span></span></span>
+      <span class="kal-info"><span class="chip ${kategoriChipClass(g.kategori)}">${g.kategori}</span><span class="kal-serie">${g.serie}</span>${arena ? `<span class="arena">· ${arena}</span>` : ''}</span>`;
+    rad.querySelector('[data-lag="h"]').addEventListener('click', () => filtreraPaLag(hemma, g.serie));
+    rad.querySelector('[data-lag="b"]').addEventListener('click', () => filtreraPaLag(borta, g.serie));
+    rad.querySelector('.kal-serie').addEventListener('click', () => filtreraPaSerie(g));
+    dagEl.appendChild(rad);
+  });
+  updateSummary(matcher.length, 0);
+}
+
 function hittaGruppForLag(lagNamn, serieNamn){
   // Lagnamn ar bara unika INOM en serie (tva olika lag i tva olika serier kan raka heta
   // samma sak) - darfor letar vi upp EXAKT den serie fokusSerie pekar pa, inte alla serier
@@ -2546,7 +2667,7 @@ document.addEventListener('click', e => {
   if (!btn) return;
   expandedRow = null;
   bytVy(btn.dataset.view);
-  renderTable();
+  renderAll(); // renderAll (inte bara renderTable) - vilka filter som visas beror pa vyn
 });
 
 // Matter toppbannerns hojd och sparar den som en CSS-variabel, sa den fastnalade
@@ -2650,7 +2771,7 @@ function tillampaAdress(){
   const g = id && seasonData().grupper.find(x => x.id === id);
   if (vy === 'serie' && g) return filtreraPaSerie(g);
   if (vy === 'lag' && g && lagNamn) return filtreraPaLag(lagNamn, g.serie);
-  bytVy(['lag', 'spelare', 'malvakt'].includes(vy) ? vy : 'tabell');
+  bytVy(['lag', 'spelare', 'malvakt', 'kalender'].includes(vy) ? vy : 'tabell');
   renderAll();
 }
 window.addEventListener('popstate', async e => {
