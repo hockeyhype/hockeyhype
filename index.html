@@ -902,7 +902,29 @@ function hamtaFavoritLag(){
   catch(e){ return new Set(); }
 }
 let favoritLag = hamtaFavoritLag();
-function favoritLagNyckel(lag, kategori){ return lag + '||' + kategori; }
+function favoritLagNyckel(lag, kategori){ return kanonisktLag(lag, kategori) + '||' + kategori; }
+// Samma lag under tva namn: i t.ex. DM heter laget ofta bara "Värmdö HC" medan seriespelet har
+// "Värmdö HC 1". Finns bade "X" och "X 1" i samma aldersklass raknas de som ett lag, "X 1".
+// (Lag 2, 3 osv. ar egna lag.) Raknas fram per sasong.
+function lagAlias(){
+  const s = RAW[currentSeason];
+  if (!s) return {};
+  if (s._lagAlias) return s._lagAlias;
+  const perKat = {};
+  s.grupper.forEach(g => lagIGrupp(g).forEach(l => { (perKat[g.kategori] = perKat[g.kategori] || new Set()).add(l); }));
+  const alias = {};
+  Object.entries(perKat).forEach(([kat, namn]) => namn.forEach(l => {
+    if (!/\s\d+$/.test(l) && namn.has(l + ' 1')) alias[l + '||' + kat] = l + ' 1';
+  }));
+  return (s._lagAlias = alias);
+}
+function kanonisktLag(lag, kategori){ return lagAlias()[lag + '||' + kategori] || lag; }
+// Alla namn laget har i aldersklassen (det egna namnet forst)
+function lagetsNamn(lag, kategori){
+  const k = kanonisktLag(lag, kategori);
+  const alias = lagAlias();
+  return [k, ...Object.keys(alias).filter(a => alias[a] === k && a.endsWith('||' + kategori)).map(a => a.split('||')[0])];
+}
 function vaxlaFavoritLag(lag, kategori){
   const k = favoritLagNyckel(lag, kategori);
   if (favoritLag.has(k)) favoritLag.delete(k); else favoritLag.add(k);
@@ -1375,15 +1397,16 @@ function renderFilters(){
   const sasongensGrupper = RAW[currentSeason].grupper;
   const allaNycklar = new Map();
   sasongensGrupper.forEach(g => lagIGrupp(g).forEach(lag => {
-    const id = lag + '||' + g.kategori;
+    const id = kanonisktLag(lag, g.kategori) + '||' + g.kategori;
     if (!allaNycklar.has(id)) allaNycklar.set(id, []);
     allaNycklar.get(id).push(g.serie + '||' + lag);
   }));
   const lagRader = new Map();
   relevantSerier.forEach(g => {
     lagIGrupp(g).forEach(lag => {
-      const id = lag + '||' + g.kategori;
-      if (!lagRader.has(id)) lagRader.set(id, { lag, kategori: g.kategori, nycklar: allaNycklar.get(id) });
+      const kanon = kanonisktLag(lag, g.kategori);
+      const id = kanon + '||' + g.kategori;
+      if (!lagRader.has(id)) lagRader.set(id, { lag: kanon, kategori: g.kategori, nycklar: allaNycklar.get(id) });
     });
   });
   const lagLista = [...lagRader.values()].sort((a, b) =>
@@ -1665,16 +1688,18 @@ function aggregateTeams(rows){
   const lagGPUppslag = byggLagGPUppslag();
   const map = new Map();
   rows.forEach(r => {
-    const key = r.lag + '||' + r.kategori;
-    if (!map.has(key)) map.set(key, { lag:r.lag, kategori:r.kategori, serier:new Set(), spelareSet:new Set(), g:0, a:0, tp:0, pim:0 });
+    const kanon = kanonisktLag(r.lag, r.kategori);
+    const key = kanon + '||' + r.kategori;
+    if (!map.has(key)) map.set(key, { lag:kanon, kategori:r.kategori, serier:new Set(), serieLag:new Set(), spelareSet:new Set(), g:0, a:0, tp:0, pim:0 });
     const t = map.get(key);
     t.serier.add(r.serie);
+    t.serieLag.add(r.serie + '||' + r.lag); // lagets namn i just den serien
     t.spelareSet.add(r.name);
     t.g += r.g; t.a += r.a; t.tp += r.tp; t.pim += r.pim;
   });
   return [...map.values()].map(t => {
     const serier = [...t.serier];
-    const gp = serier.reduce((sum, serie) => sum + (lagGPUppslag[serie+'||'+t.lag] || 0), 0);
+    const gp = [...t.serieLag].reduce((sum, nyckel) => sum + (lagGPUppslag[nyckel] || 0), 0);
     return {
       lag:t.lag, serie:valjSerieForLag(t.lag, serier), serier, kategori:t.kategori, antal:t.spelareSet.size, gp,
       g:t.g, a:t.a, tp:t.tp, pim:t.pim, pg: gp > 0 ? +(t.tp/gp).toFixed(2) : null,
@@ -1686,7 +1711,8 @@ function aggregateTeams(rows){
 function valjSerieForLag(lag, serier){
   if (serier.length === 1) return serier[0];
   const grupper = serier.map(namn => seasonDataAlla().grupper.find(g => g.serie === namn)).filter(Boolean);
-  const senast = g => ((g.matcher && g.matcher.spelade) || []).filter(m => m[1] === lag || m[2] === lag)
+  const namn = new Set(grupper.length ? lagetsNamn(lag, grupper[0].kategori) : [lag]);
+  const senast = g => ((g.matcher && g.matcher.spelade) || []).filter(m => namn.has(m[1]) || namn.has(m[2]))
     .reduce((max, m) => m[0] > max ? m[0] : max, '');
   grupper.sort((a, b) => (serieStatus(b) === 'pagaende') - (serieStatus(a) === 'pagaende') || senast(b).localeCompare(senast(a)));
   return grupper.length ? grupper[0].serie : serier[0];
@@ -2444,7 +2470,7 @@ function renderKalender(){
   const favoriter = grupper.filter(g => favoritSerier.has(g.id))
     .sort((a, b) => kategoriOrdning(a.kategori) - kategoriOrdning(b.kategori) || a.serie.localeCompare(b.serie, 'sv'));
   const lagFavoriter = [...favoritLag].map(k => { const [lag, kategori] = k.split('||'); return { lag, kategori }; })
-    .map(f => ({ ...f, grupper: grupper.filter(g => g.kategori === f.kategori && lagIGrupp(g).has(f.lag)) }))
+    .map(f => ({ ...f, lag: kanonisktLag(f.lag, f.kategori), namn: new Set(lagetsNamn(f.lag, f.kategori)), grupper: lagetsGrupper(f.lag, f.kategori) }))
     .filter(f => f.grupper.length)
     .sort((a, b) => a.lag.localeCompare(b.lag, 'sv') || kategoriOrdning(a.kategori) - kategoriOrdning(b.kategori));
   // Utan sparat val: favoritlagen om det bara finns sadana, annars favoritserierna
@@ -2497,7 +2523,7 @@ function renderKalender(){
       b.addEventListener('click', () => oppnaLagOversikt(f.lag, f.kategori));
       favs.appendChild(b);
       f.grupper.forEach(g => ((g.matcher && g.matcher.kommande) || []).forEach(m => {
-        if (m[1] !== f.lag && m[2] !== f.lag) return;
+        if (!f.namn.has(m[1]) && !f.namn.has(m[2])) return;
         const nyckel = g.id + '|' + m.join('|'); // tva favoritlag som moter varandra = en match
         if (sedda.has(nyckel)) return;
         sedda.add(nyckel);
@@ -2530,7 +2556,7 @@ function renderKalender(){
     const rad = document.createElement('div');
     rad.className = 'kal-rad';
     const harTid = tid && tid !== '00:00';
-    const fav = lag => favLagSet.has(lag + '||' + g.kategori) ? ' fav' : '';
+    const fav = lag => favLagSet.has(kanonisktLag(lag, g.kategori) + '||' + g.kategori) ? ' fav' : '';
     rad.innerHTML = `<span class="kal-tid${harTid ? '' : ' ej'}">${harTid ? tid : 'Tid ej satt'}</span>
       <span class="kal-lag"><span class="match-team${fav(hemma)}" data-lag="h">${lagLogoHtml(hemma)}<span class="match-team-name">${hemma}</span></span>
         <span class="vs">vs</span>
@@ -2546,10 +2572,11 @@ function renderKalender(){
 
 // ---- Lagoversikt: laget (i en aldersklass) over hela sasongen, alla dess serier ----
 function lagetsGrupper(lag, kategori){
-  return seasonDataAlla().grupper.filter(g => g.kategori === kategori && lagIGrupp(g).has(lag));
+  const namn = lagetsNamn(lag, kategori);
+  return seasonDataAlla().grupper.filter(g => g.kategori === kategori && namn.some(n => lagIGrupp(g).has(n)));
 }
 function oppnaLagOversikt(lag, kategori){
-  fokusLag = lag; fokusKategori = kategori; fokusSerie = null;
+  fokusLag = kanonisktLag(lag, kategori); fokusKategori = kategori; fokusSerie = null;
   search = ''; searchInputEl.value = ''; searchBoxEl.classList.remove('has-value');
   expandedRow = null;
   bytVy('lagoversikt');
@@ -2561,6 +2588,8 @@ function renderLagOversikt(){
   el.innerHTML = '';
   const lag = fokusLag, kat = fokusKategori;
   const grupper = lag && kat ? lagetsGrupper(lag, kat) : [];
+  const namn = new Set(lag && kat ? lagetsNamn(lag, kat) : []);
+  const namnIGrupp = g => [...namn].find(n => lagIGrupp(g).has(n)) || lag;
   if (!grupper.length) {
     el.innerHTML = `<div class="table-card"><div class="empty-state"><div class="big">Hittar inte laget</div>${lag || ''} ${kat || ''} finns inte i den valda säsongen.</div></div>`;
     return;
@@ -2573,7 +2602,7 @@ function renderLagOversikt(){
 
   const block = document.createElement('div');
   block.className = 'lag-vy-block';
-  const medLaget = m => m[1] === lag || m[2] === lag;
+  const medLaget = m => namn.has(m[1]) || namn.has(m[2]);
   const idag = isoDatum(new Date());
   const matchRad = (g, m, spelad) => {
     const rad = byggMatchRad(m, spelad);
@@ -2606,7 +2635,7 @@ function renderLagOversikt(){
     grupp.className = 'lo-grupp';
     grupp.innerHTML = `<h4>${rubrik}</h4>`;
     lista.forEach(g => {
-      const rad = (g.tabell || []).find(r => r[1] === lag);
+      const rad = (g.tabell || []).find(r => namn.has(r[1]));
       const plac = rad && rad[2] > 0
         ? `Plats <b>${rad[0]}</b> av ${g.tabell.length} · ${rad[7]} p på ${rad[2]} matcher`
         : (rad ? `${g.tabell.length} lag · inga matcher spelade` : '');
@@ -2614,7 +2643,7 @@ function renderLagOversikt(){
       r.className = 'lo-serie';
       r.title = `Visa ${lag} i ${g.serie}`;
       r.innerHTML = `<span class="namn">${g.serie}</span><span class="plac">${plac}</span>`;
-      r.addEventListener('click', () => filtreraPaLag(lag, g.serie));
+      r.addEventListener('click', () => filtreraPaLag(namnIGrupp(g), g.serie));
       grupp.appendChild(r);
     });
     serier.appendChild(grupp);
@@ -2630,7 +2659,7 @@ function renderLagOversikt(){
   // 4) Poanglista over hela sasongen: lagets spelare i alla dess serier i aldersklassen
   const rader = [];
   grupper.forEach(g => g.spelare.forEach(r => {
-    if (r[1] !== lag) return;
+    if (!namn.has(r[1])) return;
     rader.push({ serie:g.serie, kategori:g.kategori, name:r[0], lag:r[1], pos:r[2], fodelsear:r[3], gp:r[4], g:r[5], a:r[6], tp:r[7], pim:r[8] });
   }));
   const tomText = grupper.every(g => g.endast_tabell) ? 'För U14 visas ingen spelarstatistik.' : 'Ingen spelarstatistik publicerad ännu.';
