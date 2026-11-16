@@ -395,6 +395,8 @@ button{font:inherit;color:inherit;}
 .vy-ikon{width:17px;height:17px;flex:none;}
 .vy-ikon-text{width:1.05em;height:1.05em;vertical-align:-.17em;margin-right:.2em;}
 .kal-head h2 .vy-ikon-text, .sektion-ikon{width:.95em;height:.95em;}
+.flabel .vy-ikon-text{width:13px;height:13px;vertical-align:-2px;margin-right:5px;}
+.mobile-filter-toggle .vy-ikon-text{width:15px;height:15px;vertical-align:-2px;margin-right:7px;}
 th .vy-ikon-text{width:1.25em;height:1.25em;vertical-align:-.3em;margin-right:.35em;}
 .summary-stats .stat .l .vy-ikon-text{width:13px;height:13px;vertical-align:-2px;margin-right:4px;}
 .kal-lage .vy-ikon-text{width:14px;height:14px;vertical-align:-2px;}
@@ -2781,12 +2783,26 @@ const VY_IKONER = {
   // Malvaktsmask: hjalmform med galler over ansiktet
   malvakt: '<path d="M12 2.5c-4.3 0-7 3-7 7.3 0 5.1 3.1 10.2 7 11.7 3.9-1.5 7-6.6 7-11.7 0-4.3-2.7-7.3-7-7.3z"/><path d="M7.6 10.8h8.8M9 10.8v6.6M12 10.8v9.2M15 10.8v6.6M8.3 14.4h7.4" stroke-width="1.4"/>',
   kalender: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/>',
+  // Filtren (Serie och Lag delar ikon med vyerna)
+  distrikt: '<path d="M12 21s-6.5-6.2-6.5-11a6.5 6.5 0 0 1 13 0C18.5 14.8 12 21 12 21z"/><circle cx="12" cy="10" r="2.3"/>',
+  status: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+  alder: '<circle cx="9" cy="8" r="3"/><path d="M3.5 19.5c0-3 2.5-5.5 5.5-5.5s5.5 2.5 5.5 5.5"/><circle cx="17" cy="9.2" r="2.3"/><path d="M15.8 13.9c2.6-.3 4.7 1.7 4.7 4.4"/>',
+  fodelsear: '<path d="M4.5 20h15v-6a1.5 1.5 0 0 0-1.5-1.5H6A1.5 1.5 0 0 0 4.5 14z"/><path d="M4.5 16.2c1.2.9 2.5.9 3.7 0s2.5-.9 3.8 0 2.5.9 3.8 0 2.5-.9 3.7 0M12 12.5V9M12 6.6c-.8-.8-.8-1.9 0-3.1.8 1.2.8 2.3 0 3.1z"/>',
+  position: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3"/>',
+  filter: '<path d="M3.5 5h17l-6.5 8v5.5l-4 2V13z"/>',
   serie: '<path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5.5a2.5 2.5 0 0 0 2.6 3.9M16 6h2.5a2.5 2.5 0 0 1-2.6 3.9M12 13v4M8.5 21h7M10 17h4v4h-4z"/>',
 };
 // Samma ikon dar en vy namns i text, t.ex. "Tabell-vyn" eller rubriken "Kalender"
 function vyIkon(vy, klass){
   return `<svg class="vy-ikon ${klass || 'vy-ikon-text'}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${VY_IKONER[vy]}</svg>`;
 }
+// Ikoner vid filtrens rubriker och vid mobilens Filter-knapp
+const FILTER_IKON = { 'Distrikt':'distrikt', 'Seriestatus':'status', 'Ålder':'alder', 'Serie':'serie', 'Lag':'lag', 'Födelseår':'fodelsear', 'Position':'position' };
+document.querySelectorAll('.filter-group > .flabel').forEach(l => {
+  const ikon = FILTER_IKON[l.textContent.trim()];
+  if (ikon) l.insertAdjacentHTML('afterbegin', vyIkon(ikon));
+});
+document.querySelector('#mobileFilterToggle > span').insertAdjacentHTML('afterbegin', vyIkon('filter'));
 document.querySelectorAll('.view-toggle button[data-view]').forEach(b => {
   const ikon = VY_IKONER[b.dataset.view];
   if (ikon) b.insertAdjacentHTML('afterbegin', `<svg class="vy-ikon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ikon}</svg>`);
