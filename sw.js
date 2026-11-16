@@ -2,7 +2,7 @@
 // Natet forst for allt (sa att besokaren alltid far farsk data), cachen bara som reserv nar
 // natet inte svarar - t.ex. i en ishall med dalig tackning. Typsnitt och ikoner andras sallan
 // och tas fran cachen direkt. Inget skickas nagonstans; cachen ligger bara i besokarens enhet.
-const CACHE = 'hockeyhype-v1';
+const CACHE = 'hockeyhype-v2'; // byt version nar ikoner eller typsnitt andras, sa toms gamla cachen
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(['/', '/fonts/fonts.css'])).then(() => self.skipWaiting()));
