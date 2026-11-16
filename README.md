@@ -22,7 +22,7 @@ Varje körning:
    - Avslutade serier (inga kommande matcher kvar) hämtas inte.
    - Övriga serier: spelschemat hämtas. Har det kommit nya eller ändrade resultat, nu eller under gårdagen, hämtas även tabell och spelarstatistik. Annars uppdateras bara schemat.
    - Trupplistan (födelseår) hämtas bara när det finns spelare som inte känns igen.
-   - U14-serierna hämtar bara tabellen.
+   - U14-serierna hämtar tabell och spelschema (ingen spelarstatistik).
 
    **Måndagsmorgonen och körningar som startas för hand hämtar allt** (`dagligen.py --full`). Det fångar rättelser, borttagna spelare och flyttade matcher som schemat inte avslöjar. Loggen visar för varje serie hur den hämtades (full, schema, avslutad, tabell) och hur många sidor som hämtades från swehockey.
 2. Varje serie kontrolleras mot förra körningen. Ser en serie trasig ut (kraschar, tom tabell, färre spelade matcher eller lag, färre än 80 % av spelarna) behålls förra körningens data för just den serien, och det skrivs en varning i loggen. Resten uppdateras som vanligt.
@@ -75,7 +75,7 @@ Skriptet går igenom distriktens menyer på swehockey, plockar ut ungdomsligorna
 
 Kör skriptet igen när nya grupper tillkommer under säsongen (t.ex. DM eller slutspel) och inför en ny säsong. En enskild serie kan också läggas till för hand i `serier.json`. Nästa körning av `dagligen.py` hämtar sedan datan.
 
-`endast_tabell: true` (U14) betyder att bara tabellen hämtas.
+`endast_tabell: true` (U14) betyder att bara tabell och spelschema hämtas, ingen spelarstatistik.
 
 ## Dataformat
 

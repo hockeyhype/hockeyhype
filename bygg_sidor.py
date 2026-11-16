@@ -219,18 +219,13 @@ def main():
         kommande = g["matcher"]["kommande"][:12]
         spelade = g["matcher"]["spelade"][:12]
         ledare = g["tabell"][0] if g["tabell"] else None
-        endast_tabell = g.get("endast_tabell")
-        if endast_tabell:
-            beskr = f"Tabell för {g['serie']} ({kat}, {g['distrikt']}), säsong {sas}."
-            lead = f"Serietabell, säsong {sas}. Uppdaterad {uppd}."
-            matcher = '<p class="not">För U14 visas bara serietabellen.</p>'
-            knapp = f'<a class="knapp" href="/#serie/{g["id"]}">Öppna serien på Hockeyhype →</a>'
-        else:
-            beskr = f"Tabell, resultat och kommande matcher för {g['serie']} ({kat}, {g['distrikt']}), säsong {sas}."
-            lead = f"Tabell, resultat och kommande matcher, säsong {sas}. Uppdaterad {uppd}."
-            matcher = (f'<section class="kort"><h2>Kommande matcher</h2>{matchlista(kommande, False, "Inga kommande matcher inlagda.")}</section>'
-                       f'<section class="kort"><h2>Senaste resultat</h2>{matchlista(spelade, True, "Inga spelade matcher ännu.")}</section>')
-            knapp = f'<a class="knapp" href="/#serie/{g["id"]}">Öppna serien med poängliga och statistik →</a>'
+        endast_tabell = g.get("endast_tabell")  # U14: tabell och matcher, ingen spelarstatistik
+        beskr = f"Tabell, resultat och kommande matcher för {g['serie']} ({kat}, {g['distrikt']}), säsong {sas}."
+        lead = f"Tabell, resultat och kommande matcher, säsong {sas}. Uppdaterad {uppd}."
+        matcher = (f'<section class="kort"><h2>Kommande matcher</h2>{matchlista(kommande, False, "Inga kommande matcher inlagda.")}</section>'
+                   f'<section class="kort"><h2>Senaste resultat</h2>{matchlista(spelade, True, "Inga spelade matcher ännu.")}</section>')
+        knapp = (f'<a class="knapp" href="/#serie/{g["id"]}">Öppna serien på Hockeyhype →</a>' if endast_tabell else
+                 f'<a class="knapp" href="/#serie/{g["id"]}">Öppna serien med poängliga och statistik →</a>')
         if ledare:
             beskr += f" {ledare[1]} leder med {ledare[7]} poäng."
         innehall = f"""<div class="brod"><a href="/serier/">Alla serier</a> › {e(g['distrikt'])} › {e(kat)}</div>
@@ -241,7 +236,7 @@ def main():
 {matcher}
 <p class="rad">Källa: <a href="https://stats.swehockey.se/ScheduleAndResults/Overview/{g['id']}">{e(g['serie'])} på stats.swehockey.se</a></p>"""
         skriv(args.ut, f"serie/{g['id']}/index.html",
-              sida(f"{g['serie']} – {'tabell' if endast_tabell else 'tabell och resultat'} {sas} | Hockeyhype", beskr, sokvag, innehall, sasong))
+              sida(f"{g['serie']} – tabell och resultat {sas} | Hockeyhype", beskr, sokvag, innehall, sasong))
         adresser.append((sokvag, "daily"))
 
     # En sida per lag (alla serier laget spelar i)
@@ -255,7 +250,7 @@ def main():
                     if rad else "Ingen tabellplacering ännu")
             kommande = [m for m in g["matcher"]["kommande"] if lag in m[1:3]][:5]
             spelade = [m for m in g["matcher"]["spelade"] if lag in m[1:3]][:5]
-            matcher = "" if g.get("endast_tabell") else (
+            matcher = (
                 f'<div class="inre"><h2>Nästa matcher</h2></div>{matchlista(kommande, False, "Inga kommande matcher inlagda.")}'
                 f'<div class="inre"><h2>Senaste resultat</h2></div>{matchlista(spelade, True, "Inga spelade matcher ännu.")}')
             statistik = "" if g.get("endast_tabell") else (

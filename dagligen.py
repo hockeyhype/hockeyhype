@@ -10,7 +10,7 @@
      förra körningen - eller hände det i går eller i dag - hämtas även tabell och spelarstatistik.
      Annars behålls dem och bara schemat uppdateras (t.ex. flyttade matcher).
    - Trupplistan (födelseår) hämtas bara när det finns spelare vi inte känner igen.
-   - U14-serier (endast_tabell) hämtar bara tabellen.
+   - U14-serier (endast_tabell) har ingen spelarstatistik: bara tabell och spelschema.
    Med --full hämtas allt för alla serier. Det fångar rättelser, borttagna spelare och ändringar
    som schemat inte avslöjar.
 3. Kontrollerar varje serie mot förra körningen. Ser en serie trasig ut - den kraschar, tabellen
@@ -33,7 +33,17 @@ def hamta(s, old, full):
     """Hämtar en serie. Returnerar (grupp, sätt) där sätt är full, schema, avslutad eller tabell."""
     gid = s["id"]
     if s.get("endast_tabell"):
-        return swehockey.group(gid, s["serie"], s["kategori"], endast_tabell=True), "tabell"
+        # U14: tabell och spelschema. Samma regler som nedan: avslutade serier hämtas inte, och
+        # tabellen hämtas bara när schemat visar nya resultat (eller hände i går eller i dag).
+        if old and not full and old["matcher"]["spelade"] and not old["matcher"]["kommande"]:
+            return old, "avslutad"
+        matcher = swehockey.schedule(gid)
+        andrad = swehockey.TODAY if not old or matcher["spelade"] != old["matcher"]["spelade"] else old.get("andrad")
+        if old and not full and andrad == old.get("andrad") and (andrad or "") < IGAR:
+            return dict(old, matcher=matcher, uppdaterad=swehockey.TODAY), "schema"
+        return {"id": gid, "serie": s["serie"], "kategori": s["kategori"], "uppdaterad": swehockey.TODAY,
+                "endast_tabell": True, "andrad": andrad, "spelare": [], "tabell": swehockey.standings(gid),
+                "malvakter": [], "matcher": matcher}, "tabell"
 
     # Utan tidigare data, eller med --full, hämtas allt
     if old and not full:

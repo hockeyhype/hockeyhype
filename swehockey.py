@@ -148,9 +148,9 @@ def schedule(gid):
 
 def group(gid, serie, kategori, endast_tabell=False):
     if endast_tabell:
-        # U14: bara serietabellen (en sida per serie)
+        # U14: serietabellen och spelschemat (ingen spelarstatistik)
         return {"id": gid, "serie": serie, "kategori": kategori, "uppdaterad": TODAY, "endast_tabell": True,
-                "spelare": [], "tabell": standings(gid), "malvakter": [], "matcher": {"spelade": [], "kommande": []}}
+                "spelare": [], "tabell": standings(gid), "malvakter": [], "matcher": schedule(gid)}
     births = roster_births(gid)
     sp, gk = players_by_team(gid)
     for r in sp:

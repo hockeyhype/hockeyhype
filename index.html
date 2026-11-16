@@ -652,6 +652,13 @@ td.col-lag:hover{text-decoration:underline;text-underline-offset:2px;color:var(-
         </div>
       </div>
       <div class="filter-group">
+        <span class="flabel">Seriestatus</span>
+        <div class="dropdown" id="ddStatus">
+          <button class="dropdown-toggle" type="button"><span class="dt-label">Pågående</span><span class="chev">▾</span></button>
+          <div class="dropdown-panel"></div>
+        </div>
+      </div>
+      <div class="filter-group">
         <span class="flabel">Ålder</span>
         <div class="dropdown" id="ddAlder">
           <button class="dropdown-toggle" type="button"><span class="dt-label">Alla åldrar</span><span class="chev">▾</span></button>
@@ -751,6 +758,7 @@ let excluded = new Set(); // keys of "serie||lag" that are UNCHECKED
 let excludedSeries = new Set(); // series with no lag excluded individually but toggled off wholesale
 let excludedKategori = new Set();
 let excludedDistrikt = new Set(); // distrikt som ar UNCHECKED
+let excludedStatus = null; // seriestatusar som ar UNCHECKED; null = standardvalet (se standardStatus)
 let excludedFodelsear = new Set(); // fodelsear (som strang, "Okant" for saknat varde) som ar UNCHECKED
 let excludedPosition = new Set(); // position (GK/LD/RD/CE/LW/RW) som ar UNCHECKED
 let currentView = "tabell";
@@ -797,7 +805,7 @@ function formatMatchDatum(raw){
 
 function seasonList(){ return Object.keys(DATAINDEX.sasonger).sort().reverse(); } // senaste sasongen forst
 // Den laddade sasongen, filtrerad pa valda distrikt - allt annat i sidan utgar fran den
-function seasonData(){
+function seasonDataAlla(){
   const s = RAW[currentSeason];
   if (!s) return { uppdaterad:'', distrikt:[], grupper:[] };
   const nyckel = [...excludedDistrikt].join('|') + '#' + s.grupper.length;
@@ -806,6 +814,48 @@ function seasonData(){
     s._nyckel = nyckel;
   }
   return s._vy;
+}
+
+// ---- Seriestatus ----
+// Kommande: fram till tva dagar fore seriens forsta match. Pagaende: fran tva dagar fore forsta
+// matchen till och med sju dagar efter sista matchen. Avslutad: darefter. Raknas i besokarens
+// webblasare, sa statusen byts vid midnatt utan att datan behover uppdateras.
+const STATUSAR = [['avslutad', 'Avslutad'], ['pagaende', 'Pågående'], ['kommande', 'Kommande']];
+function isoDatum(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function plusDagar(iso, n){ const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() + n); return isoDatum(d); }
+function serieStatus(g){
+  const m = g.matcher || {};
+  const datum = [...(m.spelade || []).map(r => r[0]), ...(m.kommande || []).map(r => r[0])]
+    .map(d => String(d).slice(0, 10)).filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d)).sort();
+  // Utan spelschema (U14 fore forsta hamtningen av schemat): spelade matcher i tabellen = pagaende
+  if (!datum.length) return (g.tabell || []).some(r => r[2] > 0) ? 'pagaende' : 'kommande';
+  const idag = isoDatum(new Date());
+  if (idag < plusDagar(datum[0], -2)) return 'kommande';
+  if (idag > plusDagar(datum[datum.length - 1], 7)) return 'avslutad';
+  return 'pagaende';
+}
+// Standard: bara pagaende serier - utom for en sasong utan pagaende serier (t.ex. en avslutad
+// sasong), dar allt visas
+function standardStatus(){
+  const s = RAW[currentSeason];
+  const finnsPagaende = s && s.grupper.some(g => serieStatus(g) === 'pagaende');
+  return new Set(finnsPagaende ? ['avslutad', 'kommande'] : []);
+}
+// Sokningar och serie-/lagsidor galler alla serier oavsett status - annars skulle t.ex. en lank
+// till ett lag i en avslutad serie inte hitta laget
+function statusUndantag(){ return !!search || currentView === 'serie' || currentView === 'lagdetalj'; }
+function seasonData(){
+  const alla = seasonDataAlla();
+  const s = RAW[currentSeason];
+  if (!s || statusUndantag()) return alla;
+  if (excludedStatus === null) excludedStatus = standardStatus();
+  if (!excludedStatus.size) return alla;
+  const nyckel = s._nyckel + '§' + [...excludedStatus].join('|') + '§' + isoDatum(new Date());
+  if (s._statusNyckel !== nyckel) {
+    s._statusVy = { ...alla, grupper: alla.grupper.filter(g => !excludedStatus.has(serieStatus(g))) };
+    s._statusNyckel = nyckel;
+  }
+  return s._statusVy;
 }
 const KATEGORI_NAMN = { U14P:'Pojkar 14 år', U14F:'Flickor 14 år', U15P:'Pojkar 15 år', U16P:'Pojkar 16 år', U16F:'Flickor 16 år', U18H:'Herrjuniorer 18 år' };
 // Det en serie kan hittas pa i sokrutan: namnet, aldersklassen ("U16", "flickor") och distriktet
@@ -870,6 +920,7 @@ function resetFilters(){
   excludedSeries = new Set();
   excludedKategori = new Set();
   excludedDistrikt = new Set();
+  excludedStatus = null;
   excludedFodelsear = new Set();
   excludedPosition = new Set();
   expandedRow = null;
@@ -938,7 +989,8 @@ function buildDropdown(toggleSel, panelSel, items, opts){
   const sokInput = items.length > DD_SOK_GRANS ? document.createElement('input') : null;
   const rader = [];
   const sokOrd = () => sokInput ? sokInput.value.toLowerCase().split(/\s+/).filter(Boolean) : [];
-  // Med en sokning ikryssad galler knapparna bara de val som syns
+  // Med en sokning ikryssad galler "Markera" bara de val som syns; "Avmarkera allt" galler alltid
+  // hela listan, sa att man kan borja om och kryssa i det man soker fram
   const synliga = () => items.filter((it, k) => !rader[k].hidden);
   const allBtn = document.createElement('button');
   allBtn.type = 'button'; allBtn.textContent = 'Markera allt';
@@ -949,7 +1001,7 @@ function buildDropdown(toggleSel, panelSel, items, opts){
   const noneBtn = document.createElement('button');
   noneBtn.type = 'button'; noneBtn.textContent = 'Avmarkera allt';
   noneBtn.addEventListener('click', () => {
-    if (sokOrd().length) synliga().forEach(it => it.onChange(false)); else opts.onSelectNone();
+    opts.onSelectNone();
     klar();
   });
   actions.appendChild(allBtn); actions.appendChild(noneBtn);
@@ -1000,7 +1052,6 @@ function buildDropdown(toggleSel, panelSel, items, opts){
       });
       ingen.hidden = n > 0;
       allBtn.textContent = ord.length ? 'Markera synliga' : 'Markera allt';
-      noneBtn.textContent = ord.length ? 'Avmarkera synliga' : 'Avmarkera allt';
     };
     sokInput.addEventListener('input', () => { ddSok[toggleSel] = sokInput.value; filtrera(); });
     // Enter valjer det enda val som sokningen lamnar kvar - och bara det
@@ -1083,6 +1134,36 @@ function renderFilters(){
     singleLabel: item => item.label,
     onSelectAll: () => excludedDistrikt.clear(),
     onSelectNone: () => distrikt.forEach(d => excludedDistrikt.add(d)),
+  });
+
+  // ---- Seriestatus ----
+  if (excludedStatus === null) excludedStatus = standardStatus();
+  const statusGrupper = seasonDataAlla().grupper;
+  buildDropdown('#ddStatus .dropdown-toggle', '.dropdown-panel', STATUSAR.map(([st, namn]) => ({
+    key: st,
+    checked: !excludedStatus.has(st),
+    label: namn,
+    render(row){
+      const label = document.createElement('span');
+      label.className = 'label'; label.textContent = namn;
+      label.title = {
+        avslutad: 'Mer än sju dagar sedan seriens sista match',
+        pagaende: 'Från två dagar före första matchen till sju dagar efter den sista',
+        kommande: 'Mer än två dagar kvar till seriens första match',
+      }[st];
+      const count = document.createElement('span');
+      count.className = 'count'; count.textContent = statusGrupper.filter(g => serieStatus(g) === st).length + ' serier';
+      row.appendChild(label); row.appendChild(count);
+    },
+    onChange(isChecked){
+      if (isChecked) excludedStatus.delete(st);
+      else excludedStatus.add(st);
+    },
+  })), {
+    allLabel: 'Alla statusar',
+    singleLabel: item => item.label,
+    onSelectAll: () => excludedStatus.clear(),
+    onSelectNone: () => STATUSAR.forEach(([st]) => excludedStatus.add(st)),
   });
 
   // ---- Serie ----
@@ -1300,7 +1381,7 @@ function filtreraPaLag(lagNamn, serieNamn){
   if (!serieNamn) {
     // Fallback om anropsstallet undantagsvis inte kanner till serien annu: leta upp forsta
     // serien dar namnet forekommer (bast-mojliga gissning, men bor i princip aldrig hända).
-    const traff = seasonData().grupper.find(g => {
+    const traff = seasonDataAlla().grupper.find(g => {
       const lagISerien = lagIGrupp(g);
       return lagISerien.has(lagNamn);
     });
@@ -1309,7 +1390,7 @@ function filtreraPaLag(lagNamn, serieNamn){
   // Kryssar bara i "serieNamn||lagNamn" i Lag-filtret (Ålder/Serie lämnas orörda) och hoppar
   // till Lag-vyn (kommande matcher, serietabell, senaste resultat, intern poängliga for just
   // det laget) - precis som att ha filtrerat fram det for hand, fast med matcher/tabell pa kopet.
-  const grupper = seasonData().grupper;
+  const grupper = seasonDataAlla().grupper;
   grupper.forEach(g => {
     const lagIGruppen = lagIGrupp(g);
     lagIGruppen.forEach(lag => {
@@ -1331,7 +1412,7 @@ function filtreraPaLag(lagNamn, serieNamn){
 function filtreraPaSerie(g){
   // Sakerstaller att bara denna serie ar vald (oavsett vilken ålderskategori den tillhor)
   // och hoppar till Serie-vyn - precis som filtreraPaLag men pa serienivo.
-  const grupper = seasonData().grupper;
+  const grupper = seasonDataAlla().grupper;
   excludedKategori.delete(g.kategori);
   grupper.forEach(gr => {
     if (gr.serie === g.serie) excludedSeries.delete(gr.serie);
@@ -2045,7 +2126,7 @@ function byggSeriePoanglista(topplista){
     hint.style.padding = '12px';
     const g = currentView === 'lagdetalj' ? hittaGruppForLag(fokusLag, fokusSerie)
       : seasonData().grupper.find(g => !excludedSeries.has(g.serie) && !excludedKategori.has(g.kategori));
-    hint.textContent = g && g.endast_tabell ? 'För U14 visas bara serietabellen.' : 'Ingen spelarstatistik publicerad ännu.';
+    hint.textContent = g && g.endast_tabell ? 'För U14 visas ingen spelarstatistik.' : 'Ingen spelarstatistik publicerad ännu.';
     wrap.appendChild(hint);
     return { el: wrap, antal: 0, rowsRaw };
   }
@@ -2143,7 +2224,7 @@ function hittaGruppForLag(lagNamn, serieNamn){
   // Lagnamn ar bara unika INOM en serie (tva olika lag i tva olika serier kan raka heta
   // samma sak) - darfor letar vi upp EXAKT den serie fokusSerie pekar pa, inte alla serier
   // dar namnet forekommer.
-  return seasonData().grupper.find(g => {
+  return seasonDataAlla().grupper.find(g => {
     if (g.serie !== serieNamn) return false;
     const lagISerien = lagIGrupp(g);
     return lagISerien.has(lagNamn);
@@ -2432,7 +2513,7 @@ var sokNavigering = false; // sant medan en tangenttryckning i sokrutan ritar om
 function tillstand(){
   return { hockeyhype:1, season:currentSeason, view:currentView, fokusLag, fokusSerie,
     excluded:[...excluded], excludedSeries:[...excludedSeries], excludedKategori:[...excludedKategori],
-    excludedDistrikt:[...excludedDistrikt],
+    excludedDistrikt:[...excludedDistrikt], excludedStatus: excludedStatus ? [...excludedStatus] : null,
     excludedFodelsear:[...excludedFodelsear], excludedPosition:[...excludedPosition],
     search, sortKey, sortDir };
 }
@@ -2492,6 +2573,7 @@ window.addEventListener('popstate', async e => {
   excluded = new Set(s.excluded); excludedSeries = new Set(s.excludedSeries);
   excludedKategori = new Set(s.excludedKategori); excludedFodelsear = new Set(s.excludedFodelsear);
   excludedDistrikt = new Set(s.excludedDistrikt || []);
+  excludedStatus = s.excludedStatus ? new Set(s.excludedStatus) : null;
   excludedPosition = new Set(s.excludedPosition);
   search = s.search || ''; sortKey = s.sortKey; sortDir = s.sortDir; expandedRow = null;
   searchInputEl.value = search;
