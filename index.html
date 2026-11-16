@@ -478,6 +478,13 @@ td.col-lag:hover{text-decoration:underline;text-underline-offset:2px;color:var(-
 }
 .pin-btn:hover{opacity:1;}
 .pin-btn.active{opacity:1;color:var(--accent-strong);}
+.lag-vy-pin{font-size:22px;margin-left:4px;color:var(--text-muted);}
+.lag-rad-namn{display:inline-flex;align-items:center;gap:6px;}
+.lag-rad-pin{font-size:15px;color:var(--text-faint);padding:0;}
+.kal-lage{display:inline-flex;gap:2px;background:var(--surface-2);padding:3px;border-radius:8px;}
+.kal-lage button{border:0;background:transparent;padding:6px 12px;border-radius:6px;cursor:pointer;font:inherit;font-size:12.5px;font-weight:600;color:var(--text-muted);}
+.kal-lage button.active{background:var(--accent);color:#fff;}
+.kal-lag .match-team.fav .match-team-name{color:var(--accent-strong);}
 .standings-card h4 .pin-btn{color:var(--banner-ink);}
 .standings-card h4 .pin-btn.active{color:var(--banner-pin);}
 .standings-card table{width:100%;border-collapse:collapse;min-width:0;}
@@ -859,6 +866,31 @@ function sparaFavoriter(){
   catch(e){ /* privat lage e.d. - strunta i att spara */ }
 }
 let favoritSerier = hamtaFavoriter(); // Set av grupp-id (nålade favoritserier), sparas per webblasare
+// Favoritlag: "lag||aldersklass" (t.ex. "AIK||U16P") - samma lag i alla dess serier i aldersklassen
+function hamtaFavoritLag(){
+  try { return new Set(JSON.parse(localStorage.getItem('hockeyhype_favoritlag') || '[]')); }
+  catch(e){ return new Set(); }
+}
+let favoritLag = hamtaFavoritLag();
+function favoritLagNyckel(lag, kategori){ return lag + '||' + kategori; }
+function vaxlaFavoritLag(lag, kategori){
+  const k = favoritLagNyckel(lag, kategori);
+  if (favoritLag.has(k)) favoritLag.delete(k); else favoritLag.add(k);
+  try { localStorage.setItem('hockeyhype_favoritlag', JSON.stringify([...favoritLag])); } catch(e){}
+  renderTable();
+}
+function lagStjarna(lag, kategori, extraKlass){
+  const aktiv = favoritLag.has(favoritLagNyckel(lag, kategori));
+  return `<button type="button" class="pin-btn ${extraKlass || ''}${aktiv ? ' active' : ''}" data-favlag="${lag.replace(/"/g, '&quot;')}" data-favkat="${kategori}"
+    title="${aktiv ? 'Ta bort som favoritlag' : 'Markera som favoritlag'}" aria-label="${aktiv ? 'Ta bort som favoritlag' : 'Markera som favoritlag'}">${aktiv ? '★' : '☆'}</button>`;
+}
+// Ett klick pa en lag-stjarna var som helst pa sidan
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-favlag]');
+  if (!b) return;
+  e.stopPropagation(); e.preventDefault();
+  vaxlaFavoritLag(b.dataset.favlag, b.dataset.favkat);
+}, true);
 function vaxlaFavorit(id){
   if (favoritSerier.has(id)) favoritSerier.delete(id); else favoritSerier.add(id);
   sparaFavoriter();
@@ -1972,7 +2004,7 @@ function renderTable(){
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td class="rk num col-rk">${i+1}</td>
-        <td class="col-lag"><span class="full" style="font-weight:600">${t.lag}</span></td>
+        <td class="col-lag"><span class="lag-rad-namn">${lagStjarna(t.lag, t.kategori, 'lag-rad-pin')}<span class="full" style="font-weight:600">${t.lag}</span></span></td>
         <td class="col-kategori"><span class="chip ${kategoriChipClass(t.kategori)}">${t.kategori}</span></td>
         <td class="num-col num col-antal">${t.antal}</td>
         <td class="num-col num col-gp">${t.gp}</td>
@@ -2354,50 +2386,89 @@ function kalenderDag(iso){
   if (iso === plusDagar(idag, 1)) return `<span class="idag">I morgon</span> · ${namn}`;
   return namn.charAt(0).toUpperCase() + namn.slice(1);
 }
+// Kalendern visar favoritseriernas eller favoritlagens kommande matcher - valet sparas i webblasaren
+function hamtaKalenderLage(){
+  try { return localStorage.getItem('hockeyhype_kalenderlage'); } catch(e){ return null; }
+}
+let kalenderLage = hamtaKalenderLage();
 function renderKalender(){
   const el = document.getElementById('kalenderSection');
   el.innerHTML = '';
-  const favoriter = seasonDataAlla().grupper.filter(g => favoritSerier.has(g.id))
+  const grupper = seasonDataAlla().grupper;
+  const favoriter = grupper.filter(g => favoritSerier.has(g.id))
     .sort((a, b) => kategoriOrdning(a.kategori) - kategoriOrdning(b.kategori) || a.serie.localeCompare(b.serie, 'sv'));
+  const lagFavoriter = [...favoritLag].map(k => { const [lag, kategori] = k.split('||'); return { lag, kategori }; })
+    .map(f => ({ ...f, grupper: grupper.filter(g => g.kategori === f.kategori && lagIGrupp(g).has(f.lag)) }))
+    .filter(f => f.grupper.length)
+    .sort((a, b) => a.lag.localeCompare(b.lag, 'sv') || kategoriOrdning(a.kategori) - kategoriOrdning(b.kategori));
+  // Utan sparat val: favoritlagen om det bara finns sadana, annars favoritserierna
+  const lage = kalenderLage || (!favoriter.length && lagFavoriter.length ? 'lag' : 'serier');
 
   const head = document.createElement('div');
   head.className = 'kal-head';
-  head.innerHTML = '<h2>Kalender</h2><p>Kommande matcher i dina favoritserier</p>';
+  head.innerHTML = `<h2>Kalender</h2><div class="kal-lage" role="tablist">
+      <button type="button" data-lage="serier" class="${lage === 'serier' ? 'active' : ''}">Favoritserier (${favoriter.length})</button>
+      <button type="button" data-lage="lag" class="${lage === 'lag' ? 'active' : ''}">Favoritlag (${lagFavoriter.length})</button></div>`;
+  head.querySelectorAll('[data-lage]').forEach(b => b.addEventListener('click', () => {
+    kalenderLage = b.dataset.lage;
+    try { localStorage.setItem('hockeyhype_kalenderlage', kalenderLage); } catch(e){}
+    renderKalender();
+  }));
   el.appendChild(head);
 
-  if (!favoriter.length) {
-    el.insertAdjacentHTML('beforeend', `<div class="table-card"><div class="empty-state"><div class="big">Inga favoritserier ännu</div>
-      Tryck på stjärnan ☆ vid en serie i Tabell-vyn (eller i serievyn) så samlas seriens kommande matcher här.</div></div>`);
+  const tom = (rubrik, text) => {
+    el.insertAdjacentHTML('beforeend', `<div class="table-card"><div class="empty-state"><div class="big">${rubrik}</div>${text}</div></div>`);
     updateSummary(0, 0);
-    return;
-  }
-
-  // Favoritserierna som knappar - ett tryck oppnar serien
+  };
   const favs = document.createElement('div');
   favs.className = 'kal-favs';
-  favoriter.forEach(g => {
-    const b = document.createElement('button');
-    b.type = 'button'; b.className = 'kal-fav';
-    const kort = g.serie.startsWith(g.kategori) ? g.serie.slice(g.kategori.length).trim() : g.serie;
-    b.innerHTML = `<span class="chip ${kategoriChipClass(g.kategori)}">${g.kategori}</span>${kort}`;
-    b.title = `Öppna ${g.serie}`;
-    b.addEventListener('click', () => filtreraPaSerie(g));
-    favs.appendChild(b);
-  });
+  let poster, favLagSet = new Set();
+
+  if (lage === 'serier') {
+    if (!favoriter.length) return tom('Inga favoritserier ännu',
+      'Tryck på stjärnan ☆ vid en serie i Tabell-vyn (eller i serievyn) så samlas seriens kommande matcher här.');
+    favoriter.forEach(g => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'kal-fav';
+      const kort = g.serie.startsWith(g.kategori) ? g.serie.slice(g.kategori.length).trim() : g.serie;
+      b.innerHTML = `<span class="chip ${kategoriChipClass(g.kategori)}">${g.kategori}</span>${kort}`;
+      b.title = `Öppna ${g.serie}`;
+      b.addEventListener('click', () => filtreraPaSerie(g));
+      favs.appendChild(b);
+    });
+    poster = favoriter.flatMap(g => ((g.matcher && g.matcher.kommande) || []).map(m => ({ g, m })));
+  } else {
+    if (!lagFavoriter.length) return tom('Inga favoritlag ännu',
+      'Öppna ett lag (tryck på laget i en tabell eller i Lag-vyn) och tryck på stjärnan ☆ vid lagets namn, så samlas lagets kommande matcher här.');
+    const sedda = new Set();
+    poster = [];
+    lagFavoriter.forEach(f => {
+      favLagSet.add(f.lag + '||' + f.kategori);
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'kal-fav';
+      b.innerHTML = `${lagLogoHtml(f.lag)}${f.lag}<span class="chip ${kategoriChipClass(f.kategori)}">${f.kategori}</span>`;
+      b.title = `Öppna ${f.lag} ${f.kategori}`;
+      b.addEventListener('click', () => filtreraPaLag(f.lag, valjSerieForLag(f.lag, f.grupper.map(g => g.serie))));
+      favs.appendChild(b);
+      f.grupper.forEach(g => ((g.matcher && g.matcher.kommande) || []).forEach(m => {
+        if (m[1] !== f.lag && m[2] !== f.lag) return;
+        const nyckel = g.id + '|' + m.join('|'); // tva favoritlag som moter varandra = en match
+        if (sedda.has(nyckel)) return;
+        sedda.add(nyckel);
+        poster.push({ g, m });
+      }));
+    });
+  }
   el.appendChild(favs);
 
   const idag = isoDatum(new Date());
-  const matcher = favoriter.flatMap(g => ((g.matcher && g.matcher.kommande) || []).map(m => ({ g, m })))
+  const matcher = poster
     .filter(({ m }) => String(m[0]).slice(0, 10) >= idag)
     .filter(({ g, m }) => !search || matchesSearch(m[1]) || matchesSearch(m[2]) || matchesSearch(g.serie))
     .sort((a, b) => String(a.m[0]).localeCompare(String(b.m[0])) || a.g.serie.localeCompare(b.g.serie, 'sv'));
 
-  if (!matcher.length) {
-    el.insertAdjacentHTML('beforeend', `<div class="table-card"><div class="empty-state"><div class="big">Inga kommande matcher</div>
-      ${search ? 'Inga kommande matcher matchar sökningen.' : 'Det finns inga kommande matcher inlagda i dina favoritserier just nu.'}</div></div>`);
-    updateSummary(0, 0);
-    return;
-  }
+  if (!matcher.length) return tom('Inga kommande matcher', search ? 'Inga kommande matcher matchar sökningen.'
+    : `Det finns inga kommande matcher inlagda för dina ${lage === 'serier' ? 'favoritserier' : 'favoritlag'} just nu.`);
 
   let dag = null, dagEl = null;
   matcher.forEach(({ g, m }) => {
@@ -2413,10 +2484,11 @@ function renderKalender(){
     const rad = document.createElement('div');
     rad.className = 'kal-rad';
     const harTid = tid && tid !== '00:00';
+    const fav = lag => favLagSet.has(lag + '||' + g.kategori) ? ' fav' : '';
     rad.innerHTML = `<span class="kal-tid${harTid ? '' : ' ej'}">${harTid ? tid : 'Tid ej satt'}</span>
-      <span class="kal-lag"><span class="match-team" data-lag="h">${lagLogoHtml(hemma)}<span class="match-team-name">${hemma}</span></span>
+      <span class="kal-lag"><span class="match-team${fav(hemma)}" data-lag="h">${lagLogoHtml(hemma)}<span class="match-team-name">${hemma}</span></span>
         <span class="vs">vs</span>
-        <span class="match-team" data-lag="b">${lagLogoHtml(borta)}<span class="match-team-name">${borta}</span></span></span>
+        <span class="match-team${fav(borta)}" data-lag="b">${lagLogoHtml(borta)}<span class="match-team-name">${borta}</span></span></span>
       <span class="kal-info"><span class="chip ${kategoriChipClass(g.kategori)}">${g.kategori}</span><span class="kal-serie">${g.serie}</span>${arena ? `<span class="arena">· ${arena}</span>` : ''}</span>`;
     rad.querySelector('[data-lag="h"]').addEventListener('click', () => filtreraPaLag(hemma, g.serie));
     rad.querySelector('[data-lag="b"]').addEventListener('click', () => filtreraPaLag(borta, g.serie));
@@ -2455,7 +2527,7 @@ function renderLagVy(){
   const header = document.createElement('div');
   header.className = 'serie-vy-header lag-vy-header';
   const h2 = document.createElement('h2');
-  h2.innerHTML = `<span class="lag-vy-namn">${lagLogoHtml(fokusLag)}<span>${fokusLag}</span></span>`;
+  h2.innerHTML = `<span class="lag-vy-namn">${lagLogoHtml(fokusLag)}<span>${fokusLag}</span>${lagStjarna(fokusLag, g.kategori, 'lag-vy-pin')}</span>`;
   header.appendChild(h2);
   el.appendChild(header);
 
