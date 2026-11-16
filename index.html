@@ -488,6 +488,17 @@ td.col-lag:hover{text-decoration:underline;text-underline-offset:2px;color:var(-
 }
 .pin-btn:hover{opacity:1;}
 .pin-btn.active{opacity:1;color:var(--accent-strong);}
+.lag-hela-sasongen{display:inline-block;margin:-2px 0 14px;font-size:13px;font-weight:600;color:var(--accent);text-decoration:none;}
+.lag-hela-sasongen:hover{text-decoration:underline;}
+.lo-serier{display:flex;flex-direction:column;gap:8px;margin-bottom:22px;}
+.lo-grupp h4{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);font-family:"Karla";font-weight:700;margin:6px 0 6px;}
+.lo-serie{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:9px;
+  padding:10px 14px;cursor:pointer;margin-bottom:6px;}
+.lo-serie:hover{border-color:var(--accent);}
+.lo-serie .namn{flex:1;min-width:0;font-weight:600;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.lo-serie .plac{flex:none;font-size:12px;color:var(--text-muted);font-variant-numeric:tabular-nums;text-align:right;}
+.lo-serie .plac b{color:var(--text);font-family:"Oswald";font-size:14px;font-weight:600;}
+.match-row .match-serie{flex-basis:100%;font-size:11px;color:var(--text-faint);margin-top:-4px;}
 .lag-vy-pin{font-size:22px;margin-left:4px;color:var(--text-muted);}
 .lag-rad-namn{display:inline-flex;align-items:center;gap:6px;}
 .lag-rad-pin{font-size:15px;color:var(--text-faint);padding:0;}
@@ -816,6 +827,7 @@ tr.favorit-lag-rad td{background:var(--accent-soft);}
       <div id="standingsSection" hidden></div>
       <div id="serieSection" hidden></div>
       <div id="lagSection" hidden></div>
+      <div id="lagOversiktSection" hidden></div>
       <div id="kalenderSection" hidden></div>
     </main>
   </div>
@@ -872,6 +884,7 @@ let sortDir = -1;
 let expandedRow = null;
 let fokusLag = null; // vilket lag Lag-vyn (klick pa ett lag) visar just nu
 let fokusSerie = null; // ...och i vilken serie - lagnamn ar bara unika INOM en serie
+let fokusKategori = null; // lagets aldersklass i lagoversikten (laget over hela sasongen)
                         // (tva olika lag i tva olika serier kan raka heta t.ex. "AIK")
 
 function hamtaFavoriter(){
@@ -972,7 +985,7 @@ function standardStatus(){
 }
 // Sokningar och serie-/lagsidor galler alla serier oavsett status - annars skulle t.ex. en lank
 // till ett lag i en avslutad serie inte hitta laget
-function statusUndantag(){ return !!search || currentView === 'serie' || currentView === 'lagdetalj'; }
+function statusUndantag(){ return !!search || currentView === 'serie' || currentView === 'lagdetalj' || currentView === 'lagoversikt'; }
 function seasonData(){
   const alla = seasonDataAlla();
   const s = RAW[currentSeason];
@@ -1214,7 +1227,7 @@ function filterDolt(id){ return (DOLDA_FILTER[currentView] || []).includes(id); 
 function renderFilters(){
   ['fgFodelsear', 'fgPosition'].forEach(id => { document.getElementById(id).hidden = filterDolt(id); });
   // Kalendern visar favoritserierna - filtren behovs inte dar
-  document.getElementById('filterPanel').hidden = currentView === 'kalender';
+  document.getElementById('filterPanel').hidden = currentView === 'kalender' || currentView === 'lagoversikt';
   const grupper = seasonData().grupper;
   const seasonEmpty = grupper.every(g => g.spelare.length === 0);
   document.getElementById('emptyHint').innerHTML = seasonEmpty
@@ -1875,16 +1888,18 @@ function sortSpelare(rows){
 
 function renderTable(){
   syncHistorik();
-  document.getElementById('tableCard').hidden = ['tabell', 'serie', 'lagdetalj', 'kalender'].includes(currentView);
+  document.getElementById('tableCard').hidden = ['tabell', 'serie', 'lagdetalj', 'kalender', 'lagoversikt'].includes(currentView);
   document.getElementById('standingsSection').hidden = currentView !== 'tabell';
   document.getElementById('serieSection').hidden = currentView !== 'serie';
   document.getElementById('lagSection').hidden = currentView !== 'lagdetalj';
   document.getElementById('kalenderSection').hidden = currentView !== 'kalender';
-  document.getElementById('summaryStats').hidden = currentView === 'kalender'; // spelare/lag-siffrorna sager inget har
+  document.getElementById('lagOversiktSection').hidden = currentView !== 'lagoversikt';
+  document.getElementById('summaryStats').hidden = currentView === 'kalender' || currentView === 'lagoversikt'; // siffrorna sager inget har
   if (currentView === 'tabell') { renderStandings(); return; }
   if (currentView === 'kalender') { renderKalender(); return; }
   if (currentView === 'serie') { renderSerieVy(); return; }
   if (currentView === 'lagdetalj') { renderLagVy(); return; }
+  if (currentView === 'lagoversikt') { renderLagOversikt(); return; }
 
   const rowsRaw = getFilteredRows();
   const body = document.getElementById('bodyRows');
@@ -2043,7 +2058,7 @@ function renderTable(){
         <td class="num-col num col-pg">${t.pg ?? '–'}</td>
         <td class="num-col num col-pim">${t.pim}</td>
       `;
-      tr.addEventListener('click', () => filtreraPaLag(t.lag, t.serie));
+      tr.addEventListener('click', () => oppnaLagOversikt(t.lag, t.kategori));
       body.appendChild(tr);
     });
     const rowsRawSokt = search ? rowsRaw.filter(r => matchesSearch(r.lag)) : rowsRaw;
@@ -2288,7 +2303,7 @@ function byggSerieTabellKort(g){
 }
 
 // topplista=true (serievyn): bara spelare med minst en poang. Lagvyn visar hela truppen.
-function byggSeriePoanglista(topplista){
+function byggSeriePoanglista(topplista, egnaRader, tomText){
   const wrap = document.createElement('div');
   wrap.className = 'serie-vy-poanglista';
   const h3 = document.createElement('h3');
@@ -2300,7 +2315,7 @@ function byggSeriePoanglista(topplista){
   // fortfarande med hansyn till aktiva Lag/Fodelsear-filter, precis som Spelare-vyn.
   // tvingaRespekteraFilter=true: har ar filtren sidans egen avgransning till EN serie/ETT
   // lag, inte nagot en pagaende sokning ska kunna kringga.
-  const rowsRaw = getFilteredRows(true);
+  const rowsRaw = egnaRader || getFilteredRows(true);
   const spelare = aggregatePlayers(rowsRaw)
     .filter(p => matchesSearch(p.name) || matchesSearch(p.allaLag))
     .filter(p => !topplista || p.tp >= SPELARE_MIN_TP)
@@ -2312,7 +2327,7 @@ function byggSeriePoanglista(topplista){
     hint.style.padding = '12px';
     const g = currentView === 'lagdetalj' ? hittaGruppForLag(fokusLag, fokusSerie)
       : seasonData().grupper.find(g => !excludedSeries.has(g.serie) && !excludedKategori.has(g.kategori));
-    hint.textContent = g && g.endast_tabell ? 'För U14 visas ingen spelarstatistik.' : 'Ingen spelarstatistik publicerad ännu.';
+    hint.textContent = tomText || (g && g.endast_tabell ? 'För U14 visas ingen spelarstatistik.' : 'Ingen spelarstatistik publicerad ännu.');
     wrap.appendChild(hint);
     return { el: wrap, antal: 0, rowsRaw };
   }
@@ -2479,7 +2494,7 @@ function renderKalender(){
       b.type = 'button'; b.className = 'kal-fav';
       b.innerHTML = `${lagLogoHtml(f.lag)}${f.lag}<span class="chip ${kategoriChipClass(f.kategori)}">${f.kategori}</span>`;
       b.title = `Öppna ${f.lag} ${f.kategori}`;
-      b.addEventListener('click', () => filtreraPaLag(f.lag, valjSerieForLag(f.lag, f.grupper.map(g => g.serie))));
+      b.addEventListener('click', () => oppnaLagOversikt(f.lag, f.kategori));
       favs.appendChild(b);
       f.grupper.forEach(g => ((g.matcher && g.matcher.kommande) || []).forEach(m => {
         if (m[1] !== f.lag && m[2] !== f.lag) return;
@@ -2529,6 +2544,102 @@ function renderKalender(){
   updateSummary(matcher.length, 0);
 }
 
+// ---- Lagoversikt: laget (i en aldersklass) over hela sasongen, alla dess serier ----
+function lagetsGrupper(lag, kategori){
+  return seasonDataAlla().grupper.filter(g => g.kategori === kategori && lagIGrupp(g).has(lag));
+}
+function oppnaLagOversikt(lag, kategori){
+  fokusLag = lag; fokusKategori = kategori; fokusSerie = null;
+  search = ''; searchInputEl.value = ''; searchBoxEl.classList.remove('has-value');
+  expandedRow = null;
+  bytVy('lagoversikt');
+  renderAll();
+  scrollTo(0, 0);
+}
+function renderLagOversikt(){
+  const el = document.getElementById('lagOversiktSection');
+  el.innerHTML = '';
+  const lag = fokusLag, kat = fokusKategori;
+  const grupper = lag && kat ? lagetsGrupper(lag, kat) : [];
+  if (!grupper.length) {
+    el.innerHTML = `<div class="table-card"><div class="empty-state"><div class="big">Hittar inte laget</div>${lag || ''} ${kat || ''} finns inte i den valda säsongen.</div></div>`;
+    return;
+  }
+
+  const header = document.createElement('div');
+  header.className = 'serie-vy-header lag-vy-header';
+  header.innerHTML = `<h2><span class="lag-vy-namn">${lagLogoHtml(lag)}<span>${lag}</span><span class="chip ${kategoriChipClass(kat)}">${kat}</span>${lagStjarna(lag, kat, 'lag-vy-pin')}</span></h2>`;
+  el.appendChild(header);
+
+  const block = document.createElement('div');
+  block.className = 'lag-vy-block';
+  const medLaget = m => m[1] === lag || m[2] === lag;
+  const idag = isoDatum(new Date());
+  const matchRad = (g, m, spelad) => {
+    const rad = byggMatchRad(m, spelad);
+    rad.insertAdjacentHTML('beforeend', `<span class="match-serie">${g.serie}</span>`);
+    return rad;
+  };
+  const sektion = (titel, poster, spelad) => {
+    const sek = byggMatchSektion(titel, [], spelad);
+    const lista = sek.querySelector('.match-list');
+    poster.forEach(({ g, m }) => lista.appendChild(matchRad(g, m, spelad)));
+    return sek;
+  };
+
+  // 1) Kommande tre matcher (alla serier)
+  const kommande = grupper.flatMap(g => ((g.matcher && g.matcher.kommande) || []).filter(medLaget).map(m => ({ g, m })))
+    .filter(({ m }) => String(m[0]).slice(0, 10) >= idag)
+    .sort((a, b) => String(a.m[0]).localeCompare(String(b.m[0]))).slice(0, 3);
+  if (kommande.length) block.appendChild(sektion('Kommande matcher', kommande, false));
+
+  // 2) Serierna: pagaende, kommande, avslutade
+  const serier = document.createElement('div');
+  serier.className = 'match-section';
+  serier.innerHTML = `<h3>${vyIkon('serie')}Serier</h3>`;
+  const forsta = g => [...((g.matcher && g.matcher.spelade) || []), ...((g.matcher && g.matcher.kommande) || [])]
+    .map(m => String(m[0]).slice(0, 10)).sort()[0] || '9999';
+  [['pagaende', 'Pågående'], ['kommande', 'Kommande'], ['avslutad', 'Avslutade']].forEach(([st, rubrik]) => {
+    const lista = grupper.filter(g => serieStatus(g) === st).sort((a, b) => forsta(a).localeCompare(forsta(b)));
+    if (!lista.length) return;
+    const grupp = document.createElement('div');
+    grupp.className = 'lo-grupp';
+    grupp.innerHTML = `<h4>${rubrik}</h4>`;
+    lista.forEach(g => {
+      const rad = (g.tabell || []).find(r => r[1] === lag);
+      const plac = rad && rad[2] > 0
+        ? `Plats <b>${rad[0]}</b> av ${g.tabell.length} · ${rad[7]} p på ${rad[2]} matcher`
+        : (rad ? `${g.tabell.length} lag · inga matcher spelade` : '');
+      const r = document.createElement('div');
+      r.className = 'lo-serie';
+      r.title = `Visa ${lag} i ${g.serie}`;
+      r.innerHTML = `<span class="namn">${g.serie}</span><span class="plac">${plac}</span>`;
+      r.addEventListener('click', () => filtreraPaLag(lag, g.serie));
+      grupp.appendChild(r);
+    });
+    serier.appendChild(grupp);
+  });
+  block.appendChild(serier);
+
+  // 3) Senaste tre spelade matcher (alla serier)
+  const spelade = grupper.flatMap(g => ((g.matcher && g.matcher.spelade) || []).filter(medLaget).map(m => ({ g, m })))
+    .sort((a, b) => String(b.m[0]).localeCompare(String(a.m[0]))).slice(0, 3);
+  if (spelade.length) block.appendChild(sektion('Senaste resultat', spelade, true));
+  el.appendChild(block);
+
+  // 4) Poanglista over hela sasongen: lagets spelare i alla dess serier i aldersklassen
+  const rader = [];
+  grupper.forEach(g => g.spelare.forEach(r => {
+    if (r[1] !== lag) return;
+    rader.push({ serie:g.serie, kategori:g.kategori, name:r[0], lag:r[1], pos:r[2], fodelsear:r[3], gp:r[4], g:r[5], a:r[6], tp:r[7], pim:r[8] });
+  }));
+  const tomText = grupper.every(g => g.endast_tabell) ? 'För U14 visas ingen spelarstatistik.' : 'Ingen spelarstatistik publicerad ännu.';
+  const { el: poangEl } = byggSeriePoanglista(false, rader, tomText);
+  const h3 = poangEl.querySelector('h3');
+  if (h3) h3.textContent = 'Poängliga – hela säsongen';
+  el.appendChild(poangEl);
+}
+
 function hittaGruppForLag(lagNamn, serieNamn){
   // Lagnamn ar bara unika INOM en serie (tva olika lag i tva olika serier kan raka heta
   // samma sak) - darfor letar vi upp EXAKT den serie fokusSerie pekar pa, inte alla serier
@@ -2575,6 +2686,13 @@ function renderLagVy(){
   uppdateradEl.textContent = g.uppdaterad ? `Uppdaterad ${g.uppdaterad}` : '';
   serieHeader.append(katChip, namn, uppdateradEl);
   el.appendChild(serieHeader);
+  if (lagetsGrupper(fokusLag, g.kategori).length > 1) {
+    const lank = document.createElement('a');
+    lank.href = '#'; lank.className = 'lag-hela-sasongen';
+    lank.textContent = `Hela säsongen för ${fokusLag} ${g.kategori} →`;
+    lank.addEventListener('click', e => { e.preventDefault(); oppnaLagOversikt(fokusLag, g.kategori); });
+    el.appendChild(lank);
+  }
 
   const block = document.createElement('div');
   block.className = 'lag-vy-block';
@@ -2858,7 +2976,7 @@ function renderAll(){
 var aterstaller = false;
 var sokNavigering = false; // sant medan en tangenttryckning i sokrutan ritar om sidan
 function tillstand(){
-  return { hockeyhype:1, season:currentSeason, view:currentView, fokusLag, fokusSerie,
+  return { hockeyhype:1, season:currentSeason, view:currentView, fokusLag, fokusSerie, fokusKategori,
     excluded:[...excluded], excludedSeries:[...excludedSeries], excludedKategori:[...excludedKategori],
     excludedDistrikt:[...excludedDistrikt], excludedStatus: excludedStatus ? [...excludedStatus] : null,
     excludedFodelsear:[...excludedFodelsear], excludedPosition:[...excludedPosition],
@@ -2866,7 +2984,7 @@ function tillstand(){
 }
 function navNyckel(s){
   // Serie-vyn visar den serie som filtren pekar ut - byte av serie ar ocksa ett nytt steg
-  return JSON.stringify([s.season, s.view, s.fokusLag, s.fokusSerie,
+  return JSON.stringify([s.season, s.view, s.fokusLag, s.fokusSerie, s.view === 'lagoversikt' ? s.fokusKategori : null,
     s.view === 'serie' ? [s.excludedSeries, s.excludedKategori] : null]);
 }
 function adressFor(s){
@@ -2879,6 +2997,8 @@ function adressFor(s){
   } else if (s.view === 'lagdetalj') {
     const g = grupper.find(x => x.serie === s.fokusSerie);
     if (g && s.fokusLag) delar.push('lag', g.id, encodeURIComponent(s.fokusLag));
+  } else if (s.view === 'lagoversikt') {
+    if (s.fokusLag && s.fokusKategori) delar.push('laget', s.fokusKategori, encodeURIComponent(s.fokusLag));
   } else if (s.view !== 'tabell') {
     delar.push(s.view);
   }
@@ -2916,6 +3036,7 @@ function tillampaAdress(){
   currentSeason = delar[0] && DATAINDEX.sasonger[delar[0]] ? delar.shift() : seasonList()[0];
   if (!VISA_SASONGSVAL) currentSeason = seasonList()[0];
   const [vy, id, lagNamn] = delar;
+  if (vy === 'laget' && id && lagNamn) return oppnaLagOversikt(lagNamn, id);
   const g = id && seasonData().grupper.find(x => x.id === id);
   if (vy === 'serie' && g) return filtreraPaSerie(g);
   if (vy === 'lag' && g && lagNamn) return filtreraPaLag(lagNamn, g.serie);
@@ -2928,7 +3049,7 @@ window.addEventListener('popstate', async e => {
   await laddaSasong(s.season);
   aterstaller = true;
   currentSeason = s.season; currentView = s.view;
-  fokusLag = s.fokusLag; fokusSerie = s.fokusSerie;
+  fokusLag = s.fokusLag; fokusSerie = s.fokusSerie; fokusKategori = s.fokusKategori || null;
   excluded = new Set(s.excluded); excludedSeries = new Set(s.excludedSeries);
   excludedKategori = new Set(s.excludedKategori); excludedFodelsear = new Set(s.excludedFodelsear);
   excludedDistrikt = new Set(s.excludedDistrikt || []);
