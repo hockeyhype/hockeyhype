@@ -64,11 +64,21 @@ def hamta(s, old, full):
         kanda = {(r[1], r[0]): r[3] for r in old["spelare"] if r[3]}
         kanda.update({(r[1], r[0]): r[2] for r in old["malvakter"] if r[2]})
     okanda = any((r[1], r[0]) not in kanda for r in sp + gk)
-    fodda = swehockey.roster_births(gid) if full or okanda else kanda
+    # Trupplistan hämtas vid --full, när det finns spelare vi inte känner igen, och när
+    # spelarstatistiken är tom (t.ex. DM före första matchen - truppen kan ändå vara publicerad)
+    trupp = swehockey.roster(gid) if full or okanda or not sp else None
+    fodda = {(lag, namn): ar for lag, namn, ar, _ in trupp} if trupp is not None else kanda
     for r in sp:
         r[3] = fodda.get((r[1], r[0]))
     for r in gk:
         r[2] = fodda.get((r[1], r[0]))
+    # Spelare i truppen som inte spelat ännu (finns inte i statistiken) läggs till med 0 i allt,
+    # så att lagsidan visar hela truppen. Hämtades inte truppen nu behålls förra körningens rader.
+    i_statistik = {(r[1], r[0]) for r in sp + gk}
+    if trupp is not None:
+        sp += [[namn, lag, pos, ar, 0, 0, 0, 0, 0] for lag, namn, ar, pos in trupp if (lag, namn) not in i_statistik]
+    elif old:
+        sp += [r for r in old["spelare"] if r[4] == 0 and (r[1], r[0]) not in i_statistik]
     andrad = swehockey.TODAY if not old or matcher["spelade"] != old["matcher"]["spelade"] else old.get("andrad")
     return {"id": gid, "serie": s["serie"], "kategori": s["kategori"], "uppdaterad": swehockey.TODAY,
             "endast_tabell": False, "andrad": andrad, "spelare": sp, "tabell": swehockey.standings(gid),

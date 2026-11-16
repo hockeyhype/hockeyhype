@@ -85,15 +85,20 @@ def last_update(t):
     return m.group(1) if m else None
 
 
-def roster_births(gid):
-    """{(lag, namn): födelseår} från lagens trupplistor."""
-    births, team = {}, None
+def roster(gid):
+    """Lagens trupplistor: [(lag, namn, födelseår, position)]."""
+    trupp, team = [], None
     for c in rows(content(get(f"/Teams/Info/TeamRoster/{gid}"))):
         if len(c) >= 2 and c[-1] == "[Top]":
             team = c[-2]
         elif len(c) >= 4 and re.fullmatch(r"\d{4}-\d{2}-\d{2}", c[2]):
-            births[(team, c[1])] = c[2][:4]
-    return births
+            trupp.append((team, c[1], c[2][:4], c[3]))
+    return trupp
+
+
+def roster_births(gid):
+    """{(lag, namn): födelseår} från lagens trupplistor."""
+    return {(lag, namn): ar for lag, namn, ar, _ in roster(gid)}
 
 
 def players_by_team(gid):
