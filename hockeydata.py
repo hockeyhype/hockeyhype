@@ -6,7 +6,7 @@
 Varje grupp: {"id", "serie", "kategori", "distrikt", "uppdaterad", "endast_tabell",
               "spelare", "tabell", "malvakter", "matcher"} - se README för kolumnerna.
 """
-import json, os, re, unicodedata
+import datetime, json, os, re, unicodedata
 
 MAPP = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
 KATEGORIER = {"U14P": "Pojkar 14 år", "U14F": "Flickor 14 år", "U15P": "Pojkar 15 år",
@@ -50,7 +50,9 @@ def spara_sasong(sasong, uppdaterad, grupper, mapp=MAPP):
             json.dump({"distrikt": d, "grupper": gs}, f, ensure_ascii=False, separators=(",", ":"))
         distrikt.append({"namn": d, "fil": fil, "grupper": len(gs)})
     index = las_index(mapp)
-    index["sasonger"][sasong] = {"uppdaterad": uppdaterad, "distrikt": distrikt}
+    # tid = klockslaget for korningen (svensk tid - GitHub-korningen har TZ=Europe/Stockholm)
+    index["sasonger"][sasong] = {"uppdaterad": uppdaterad, "tid": datetime.datetime.now().strftime("%H:%M"),
+                                 "distrikt": distrikt}
     index["senaste"] = max(index["sasonger"])
     with open(os.path.join(mapp, "index.json"), "w", encoding="utf8", newline="\n") as f:
         json.dump(index, f, ensure_ascii=False, indent=1)

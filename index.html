@@ -197,6 +197,7 @@ button{font:inherit;color:inherit;}
 }
 .tillbaka-knapp[hidden]{display:none;}
 .tillbaka-knapp + .brand{margin-right:auto;}
+.topbar-info{display:none;} /* visas bara pa mobil, se @media nedan */
 .tillbaka-knapp svg{width:22px;height:22px;}
 .brand{display:flex;align-items:baseline;gap:10px;cursor:pointer;border-radius:10px;transition:opacity .15s;}
 .brand:hover{opacity:.85;}
@@ -276,7 +277,6 @@ button{font:inherit;color:inherit;}
 .filter-bar .rail-actions button{padding:3px 8px;font-size:10.5px;}
 #emptyHint:empty{display:none;}
 #emptyHint{text-align:right;}
-@media (max-width:640px){ .rail{display:none;} } /* vy-valen finns i bottombaren pa mobil */
 
 .filter-group{margin-bottom:10px;}
 .filter-group[hidden]{display:none;}
@@ -537,6 +537,10 @@ td.col-lag:hover{text-decoration:underline;text-underline-offset:2px;color:var(-
   /* Kompaktare huvud: undertexten tar en hel rad och sager inget nytt pa en liten skarm */
   .topbar{gap:10px 12px;padding-bottom:12px;margin-bottom:12px;}
   .brand .tag{display:none;}
+  /* Uppdateringsdatum och kalla pa loggans rad */
+  .topbar-info{display:block;margin-left:auto;text-align:right;font-size:11px;line-height:1.35;color:var(--text-faint);}
+  .topbar-info b{color:var(--text-muted);font-weight:600;}
+  .rail{margin-bottom:-8px;}
   /* Mindre sasongsknappar, och siffraden (antal serier/lag/spelare) doljs - den tar en hel rad */
   .season-tabs{gap:2px;padding:3px;}
   .season-tabs button{padding:5px 10px;font-size:11.5px;}
@@ -548,8 +552,9 @@ td.col-lag:hover{text-decoration:underline;text-underline-offset:2px;color:var(-
 /* ---------- Fastnalad bottombar (bara mobil) - snabbnavigering + uppdaterad-info,
    sa man slipper scrolla hela vagen upp for att byta vy eller se nar datan hamtades ---------- */
 .bottom-bar{display:none;}
+.bottom-bar[hidden]{display:none !important;} /* bottenmenyn anvands inte langre - vy-valen ligger ovanfor filtren */
 @media (max-width:640px){
-  .app{padding-bottom:88px;} /* plats at den fastnalade bottombaren, annars dolts sista raderna bakom den */
+  .app{padding-bottom:40px;}
   .bottom-bar{
     display:flex;flex-direction:column;position:fixed;left:0;right:0;bottom:0;z-index:40;
     background:var(--surface);border-top:2px solid var(--accent); /* samma avskiljare som topbarens border-bottom */
@@ -605,14 +610,14 @@ td.col-lag:hover{text-decoration:underline;text-underline-offset:2px;color:var(-
    tvakolumnslayouten blev de annars for trånga for lagnamn */
 @media (max-width:640px){
   .filter-bar .dropdown-panel{
-    position:fixed;left:8px;right:8px;top:auto;bottom:calc(var(--bottombar-h, 84px) + 8px);
+    position:fixed;left:8px;right:8px;top:auto;bottom:8px;
     max-height:min(60vh, 480px);z-index:45;box-shadow:0 -8px 28px rgba(0,0,0,.35);
   }
 }
 
 /* ---------- Kompakt lage pa sma telefoner ---------- */
 @media (max-width:480px){
-  .app{padding:10px 8px 32px;padding-bottom:88px;}
+  .app{padding:10px 8px 32px;}
   .summary-stats{gap:14px;}
   .summary-stats .stat .n{font-size:18px;}
   table{min-width:0;} /* lat tabellen krympa till skarmens bredd i stallet for att tvinga sidledsskroll */
@@ -655,6 +660,7 @@ td.col-lag:hover{text-decoration:underline;text-underline-offset:2px;color:var(-
         <div class="tag">Ungdomshockey i region Öst &middot; källa: stats.swehockey.se</div>
       </div>
     </div>
+    <div class="topbar-info" id="topbarInfo" title="Data hämtad från Svenska Ishockeyförbundets statistiksida, allmänt tillgänglig."></div>
     <div class="search-box" id="searchBox">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
       <input id="searchInput" type="text" placeholder="Sök spelare, lag eller serie&hellip;" autocomplete="off">
@@ -762,7 +768,7 @@ td.col-lag:hover{text-decoration:underline;text-underline-offset:2px;color:var(-
   </div>
 </div>
 
-<div class="bottom-bar">
+<div class="bottom-bar" hidden>
   <div class="view-toggle bottom-bar-nav" id="bottomBarNav">
     <button data-view="tabell" class="active">Tabell</button>
     <button data-view="lag">Lag</button>
@@ -912,13 +918,13 @@ async function laddaSasong(sasong){
   if (RAW[sasong]) return;
   const info = DATAINDEX.sasonger[sasong];
   const filer = await Promise.all(info.distrikt.map(d =>
-    fetch(`data/${sasong}/${d.fil}?v=${info.uppdaterad}`).then(r => { if (!r.ok) throw new Error(d.fil); return r.json(); })));
+    fetch(`data/${sasong}/${d.fil}?v=${info.uppdaterad}${info.tid ? '-' + info.tid.replace(':', '') : ''}`).then(r => { if (!r.ok) throw new Error(d.fil); return r.json(); })));
   const grupper = filer.flatMap(f => f.grupper);
   grupper.forEach((g, i) => g._ordning = i);
   // Inom varje kategori kommer serier som har spelat matcher forst - ospelade DM- och kvalgrupper sist
   const ospelad = g => (g.tabell || []).some(r => r[2] > 0) ? 0 : 1;
   grupper.sort((a, b) => kategoriOrdning(a.kategori) - kategoriOrdning(b.kategori) || ospelad(a) - ospelad(b) || a._ordning - b._ordning);
-  RAW[sasong] = { uppdaterad:info.uppdaterad, distrikt:info.distrikt.map(d => d.namn), grupper };
+  RAW[sasong] = { uppdaterad:info.uppdaterad, tid:info.tid || '', distrikt:info.distrikt.map(d => d.namn), grupper };
 }
 function kategoriChipClass(kat){
   if (kat === 'U14P') return 'chip-u14';
@@ -2561,8 +2567,10 @@ function renderAll(){
   renderFilters();
   syncSerieKnapp();
   renderTable();
-  document.getElementById('updatedNote').textContent = `Senast uppdaterad: ${seasonData().uppdaterad}`;
+  document.getElementById('updatedNote').textContent = `Senast uppdaterad: ${seasonData().uppdaterad}${RAW[currentSeason] && RAW[currentSeason].tid ? ' kl ' + RAW[currentSeason].tid : ''}`;
   document.getElementById('bottomBarFooter').textContent = `Uppdaterad ${formatDatumKort(seasonData().uppdaterad)} · Källa: Swehockey`;
+  const tid = (RAW[currentSeason] && RAW[currentSeason].tid) || '';
+  document.getElementById('topbarInfo').innerHTML = `Uppdaterad <b>${formatDatumKort(seasonData().uppdaterad)}${tid ? ' ' + tid : ''}</b><br>Källa: Swehockey`;
   syncTopbarHeight();
 }
 
