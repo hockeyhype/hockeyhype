@@ -478,6 +478,14 @@ td.col-lag:hover{text-decoration:underline;text-underline-offset:2px;color:var(-
   border-left:3px solid var(--accent);
 }
 .standings-card h4:hover{background:var(--banner-hover);}
+/* Tabellernas rubrik i aldersklassens farg - samma som aldersetiketten */
+.kort-u14 h4{--banner-bg:var(--u14-chip-bg);--banner-ink:var(--u14-chip-ink);}
+.kort-u15 h4{--banner-bg:var(--u15-chip-bg);--banner-ink:var(--u15-chip-ink);}
+.kort-u16 h4{--banner-bg:var(--u16-chip-bg);--banner-ink:var(--u16-chip-ink);}
+.kort-u18 h4{--banner-bg:var(--u18-chip-bg);--banner-ink:var(--u18-chip-ink);}
+.kort-f h4{--banner-bg:var(--f-chip-bg);--banner-ink:var(--f-chip-ink);}
+.standings-card[class*="kort-"] h4{--banner-pin:var(--banner-ink);}
+.standings-card[class*="kort-"] h4:hover{background:var(--banner-bg);filter:brightness(1.12);}
 .standings-card h4 .serie-title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .standings-card h4 .serie-updated{
   flex:none;font-size:10.5px;font-weight:600;color:var(--banner-ink);opacity:.7;white-space:nowrap;
@@ -2146,7 +2154,7 @@ function renderStandings(){
     if (search && !serieTraff && rader.length === 0) return null; // dolj kortet om ingen match
 
     const card = document.createElement('div');
-    card.className = 'standings-card';
+    card.className = 'standings-card ' + kategoriChipClass(g.kategori).replace('chip-', 'kort-'); // rubrikfarg per alder
     const h4 = document.createElement('h4');
     if (visaKatChip) {
       // I favoritsektionen blandas flera ålderskategorier - da behovs kategorin pa kortet,
