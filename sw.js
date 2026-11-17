@@ -19,7 +19,7 @@ self.addEventListener('fetch', e => {
   const url = new URL(req.url);
   if (req.method !== 'GET' || url.origin !== location.origin) return;
 
-  if (url.pathname.startsWith('/fonts/') || url.pathname.startsWith('/ikoner/')) {
+  if (url.pathname.startsWith('/fonts/') || url.pathname.startsWith('/ikoner/') || url.pathname.startsWith('/logos/')) {
     e.respondWith(caches.match(req).then(svar => svar || hamtaOchSpara(req)));
     return;
   }
