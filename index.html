@@ -37,6 +37,7 @@
   --accent-strong:#6E1B25;
   --accent-soft:#F4DEE1;
   --accent-ink:#4A1219;
+  --linje:#8E2430; /* de horisontella avskiljarna */
   --banner-bg:#182640;
   --banner-hover:#22345A;
   --banner-ink:#FFFFFF;
@@ -84,6 +85,7 @@
     --accent-strong:#EC7C8B;
     --accent-soft:#3B1620;
     --accent-ink:#F6C9CF;
+    --linje:#8E2430;
     --banner-bg:#3B1620;
     --banner-hover:#4A1C28;
     --banner-ink:#F6C9CF;
@@ -129,6 +131,7 @@
   --accent-strong:#EC7C8B;
   --accent-soft:#3B1620;
   --accent-ink:#F6C9CF;
+  --linje:#8E2430;
   --banner-bg:#3B1620;
   --banner-hover:#4A1C28;
   --banner-ink:#F6C9CF;
@@ -189,7 +192,7 @@ button{font:inherit;color:inherit;}
   display:flex;align-items:center;justify-content:space-between;
   gap:20px;flex-wrap:wrap;
   padding-bottom:16px;margin-bottom:16px;
-  border-bottom:2px solid var(--accent);
+  border-bottom:2px solid var(--linje);
 }
 .tillbaka-knapp{
   flex:none;display:flex;align-items:center;justify-content:center;width:40px;height:40px;margin-right:-4px;
@@ -411,7 +414,7 @@ table{width:100%;border-collapse:collapse;min-width:640px;}
 thead th{
   position:sticky;top:0;background:var(--thead-bg);z-index:1;
   text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--thead-ink);
-  font-family:"Karla";font-weight:700;padding:10px 12px;border-bottom:2px solid var(--accent);
+  font-family:"Karla";font-weight:700;padding:10px 12px;border-bottom:2px solid var(--linje);
   cursor:pointer;white-space:nowrap;user-select:none;
 }
 thead th.num-col{text-align:right;}
@@ -479,12 +482,22 @@ td.col-lag:hover{text-decoration:underline;text-underline-offset:2px;color:var(-
 }
 .standings-card h4:hover{background:var(--banner-hover);}
 /* Tabellernas rubrik i aldersklassens farg - samma som aldersetiketten */
-.kort-u14 h4{--banner-bg:var(--u14-chip-bg);--banner-ink:var(--u14-chip-ink);}
-.kort-u15 h4{--banner-bg:var(--u15-chip-bg);--banner-ink:var(--u15-chip-ink);}
-.kort-u16 h4{--banner-bg:var(--u16-chip-bg);--banner-ink:var(--u16-chip-ink);}
-.kort-u18 h4{--banner-bg:var(--u18-chip-bg);--banner-ink:var(--u18-chip-ink);}
-.kort-f h4{--banner-bg:var(--f-chip-bg);--banner-ink:var(--f-chip-ink);}
-.standings-card[class*="kort-"] h4{--banner-pin:var(--banner-ink);}
+.kort-u14{--kat-bg:var(--u14-chip-bg);--kat-ink:var(--u14-chip-ink);}
+.kort-u15{--kat-bg:var(--u15-chip-bg);--kat-ink:var(--u15-chip-ink);}
+.kort-u16{--kat-bg:var(--u16-chip-bg);--kat-ink:var(--u16-chip-ink);}
+.kort-u18{--kat-bg:var(--u18-chip-bg);--kat-ink:var(--u18-chip-ink);}
+.kort-f{--kat-bg:var(--f-chip-bg);--kat-ink:var(--f-chip-ink);}
+.standings-card[class*="kort-"] h4{--banner-bg:var(--kat-bg);--banner-ink:var(--kat-ink);--banner-pin:var(--kat-ink);border-left-color:var(--kat-ink);}
+/* Serievyns och lagsidornas rubrik som en banner i samma farg */
+.serie-vy-header[class*="kort-"]{
+  background:var(--kat-bg);color:var(--kat-ink);border-bottom:0;border-left:3px solid var(--kat-ink);
+  border-radius:10px;padding:12px 14px;
+}
+.serie-vy-header[class*="kort-"] h2,
+.serie-vy-header[class*="kort-"] .serie-vy-updated,
+.serie-vy-header[class*="kort-"] .pin-btn{color:var(--kat-ink);}
+.serie-vy-header[class*="kort-"] .serie-vy-updated{opacity:.75;}
+.serie-vy-header[class*="kort-"] .chip{background:rgba(255,255,255,.18);color:var(--kat-ink);}
 .standings-card[class*="kort-"] h4:hover{background:var(--banner-bg);filter:brightness(1.12);}
 .standings-card h4 .serie-title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .standings-card h4 .serie-updated{
@@ -544,7 +557,7 @@ tr.favorit-lag-rad td{background:var(--accent-soft);}
 /* ---------- Serievy ---------- */
 .serie-vy-header{
   display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:18px;
-  padding-bottom:14px;border-bottom:2px solid var(--accent);
+  padding-bottom:14px;border-bottom:2px solid var(--linje);
 }
 .serie-vy-header h2{font-size:19px;flex:1;min-width:0;}
 .serie-vy-updated{font-size:12px;color:var(--text-faint);white-space:nowrap;}
@@ -588,7 +601,7 @@ tr.favorit-lag-rad td{background:var(--accent-soft);}
 .lag-vy-header .lag-vy-namn .lag-logo-fallback{font-size:10px;}
 
 .footnote{
-  margin-top:16px;padding-top:14px;border-top:2px solid var(--accent); /* samma avskiljare som topbaren/bottombaren */
+  margin-top:16px;padding-top:14px;border-top:2px solid var(--linje); /* samma avskiljare som topbaren/bottombaren */
   font-size:12px;color:var(--text-faint);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;
 }
 .footnote a{color:var(--text-muted);text-decoration:underline;text-underline-offset:2px;}
@@ -626,7 +639,7 @@ tr.favorit-lag-rad td{background:var(--accent-soft);}
   .app{padding-bottom:40px;}
   .bottom-bar{
     display:flex;flex-direction:column;position:fixed;left:0;right:0;bottom:0;z-index:40;
-    background:var(--surface);border-top:2px solid var(--accent); /* samma avskiljare som topbarens border-bottom */
+    background:var(--surface);border-top:2px solid var(--linje); /* samma avskiljare som topbarens border-bottom */
     box-shadow:0 -6px 16px -8px rgba(20,27,46,.2);
   }
   .bottom-bar-nav{background:transparent;padding:6px 6px 4px;border-radius:0;gap:2px;}
@@ -2420,7 +2433,7 @@ function renderSerieVy(){
   const g = grupper[0];
 
   const header = document.createElement('div');
-  header.className = 'serie-vy-header';
+  header.className = 'serie-vy-header ' + kategoriChipClass(g.kategori).replace('chip-', 'kort-');
   const katChip = document.createElement('span');
   katChip.className = 'chip ' + kategoriChipClass(g.kategori);
   katChip.textContent = g.kategori;
@@ -2604,7 +2617,7 @@ function renderLagOversikt(){
   }
 
   const header = document.createElement('div');
-  header.className = 'serie-vy-header lag-vy-header';
+  header.className = 'serie-vy-header lag-vy-header ' + kategoriChipClass(kat).replace('chip-', 'kort-');
   header.innerHTML = `<h2><span class="lag-vy-namn">${lagLogoHtml(lag)}<span>${lag}</span><span class="chip ${kategoriChipClass(kat)}">${kat}</span>${lagStjarna(lag, kat, 'lag-vy-pin')}</span></h2>`;
   el.appendChild(header);
 
@@ -2704,7 +2717,7 @@ function renderLagVy(){
   }
 
   const header = document.createElement('div');
-  header.className = 'serie-vy-header lag-vy-header';
+  header.className = 'serie-vy-header lag-vy-header ' + kategoriChipClass(g.kategori).replace('chip-', 'kort-');
   const h2 = document.createElement('h2');
   h2.innerHTML = `<span class="lag-vy-namn">${lagLogoHtml(fokusLag)}<span>${fokusLag}</span>${lagStjarna(fokusLag, g.kategori, 'lag-vy-pin')}</span>`;
   header.appendChild(h2);
