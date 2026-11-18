@@ -21,6 +21,9 @@ assert.equal(klar.senast, '2026-09-15 22:37:14');
 const live = tolkaMatch(fil('match-live.html'));
 assert.equal(live.h, 2); assert.equal(live.b, 1);
 assert.equal(live.status, '2nd period'); assert.equal(live.klar, false);
+// Publiksiffran efter "Final Score" ska inte läsas som status
+const medPublik = tolkaMatch(fil('match-klar.html').replace('>Final Score</div>', '>Final Score</div><div>   Spectators: 28</div>'));
+assert.equal(medPublik.status, 'Final Score'); assert.equal(medPublik.klar, true);
 
 // --- en hel runda med låtsas-KV och låtsas-hämtning ---
 const kv = new Map();

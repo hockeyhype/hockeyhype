@@ -68,7 +68,9 @@ export function tolkaMatch(html) {
   const divar = [...info.matchAll(/<div[^>]*>([\s\S]*?)<\/div>/g)].map(d => text(d[1])).filter(Boolean);
   const stalln = divar.find(d => /^\d+\s*-\s*\d+$/.test(d));
   const perioder = (divar.find(d => /^\(.*\)$/.test(d)) || '').replace(/[()]/g, '').trim();
-  const status = divar.filter(d => d !== stalln && !/^\(.*\)$/.test(d)).pop() || '';
+  // Efter ställning och perioder kommer status ("Final Score", "1st period" ...) och, när den förts in,
+  // publiksiffran ("Spectators: 28") - den ska inte läsas som status.
+  const status = divar.find(d => d !== stalln && !/^\(.*\)$/.test(d) && !/^(spectators|åskådare|publik)/i.test(d)) || '';
   const senast = (html.match(/Last update:\s*([\d-]+ [\d:]+)/) || [])[1] || null;
   if (!lag) return null;
   const [hemma, borta] = text(lag).split(/\s-\s/).map(s => s.trim());
