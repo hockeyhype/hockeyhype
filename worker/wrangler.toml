@@ -1,0 +1,21 @@
+# Cloudflare Worker för livebevakning av matcher (se src/index.js och README.md i den här mappen).
+name = "hockeyhype-live"
+main = "src/index.js"
+compatibility_date = "2026-11-01"
+
+# Varannan minut, dygnet runt. Rundan avslutas direkt om ingen match pågår.
+[triggers]
+crons = ["*/2 * * * *"]
+
+# Workern svarar på hockeyhype.se/api/* (resten av sidan ligger kvar på GitHub Pages)
+routes = [{ pattern = "hockeyhype.se/api/*", zone_name = "hockeyhype.se" }]
+
+[vars]
+GITHUB_REPO = "hockeyhype/hockeyhype"
+
+# KV-lagringen för läget. id fylls i när namnrymden skapats (npx wrangler kv namespace create LIVE).
+[[kv_namespaces]]
+binding = "LIVE"
+id = "SKAPAS_VID_INSTALLATIONEN"
+
+# GITHUB_TOKEN läggs in som hemlighet: npx wrangler secret put GITHUB_TOKEN

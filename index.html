@@ -589,6 +589,16 @@ tr.favorit-lag-rad td{background:var(--accent-soft);}
   min-width:44px;text-align:center;
 }
 .match-score.tbd{color:var(--text-faint);font-weight:600;font-size:11px;text-transform:uppercase;}
+/* Livestatus fran Cloudflare-workern (/api/live) */
+.match-score.live{color:#C8102E;}
+.match-score.live.klar{color:var(--accent-strong);}
+.live-status{display:inline-flex;align-items:center;gap:5px;font-family:"Karla";font-size:10.5px;font-weight:700;
+  letter-spacing:.04em;text-transform:uppercase;color:#C8102E;white-space:nowrap;}
+.live-status::before{content:"";width:7px;height:7px;border-radius:50%;background:#C8102E;animation:livePuls 1.6s ease-in-out infinite;}
+.live-status.klar{color:var(--text-faint);}
+.live-status.klar::before{display:none;}
+@keyframes livePuls{0%,100%{opacity:1}50%{opacity:.25}}
+@media (prefers-reduced-motion: reduce){.live-status::before{animation:none;}}
 .match-venue{flex:none;font-size:11px;color:var(--text-faint);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .serie-vy-tabell{margin-bottom:24px;}
 .serie-vy-poanglista .table-card{margin:0;}
@@ -2292,14 +2302,16 @@ function renderStandings(){
 /* ============================================================
    SERIEVY (kommande/senaste matcher, tabell, poanglig for EN serie)
    ============================================================ */
-function byggMatchRad(rad, arSpelad){
+function byggMatchRad(rad, arSpelad, g){
   const row = document.createElement('div');
   row.className = 'match-row';
   const [datum, hemma, borta, a, b, arenaOmSpelad] = rad;
   const arena = arSpelad ? arenaOmSpelad : a; // olika kolumnordning for kommande/spelade rader
+  const live = !arSpelad && g ? liveFor(g, rad) : null;
   const datumEl = document.createElement('span');
   datumEl.className = 'match-date';
-  datumEl.textContent = formatMatchDatum(datum);
+  if (live) datumEl.innerHTML = liveStatusHtml(live);
+  else datumEl.textContent = formatMatchDatum(datum);
 
   const teams = document.createElement('span');
   teams.className = 'match-teams';
@@ -2310,6 +2322,9 @@ function byggMatchRad(rad, arSpelad){
   if (arSpelad) {
     scoreEl.className = 'match-score';
     scoreEl.textContent = `${a ?? '–'} - ${b ?? '–'}`;
+  } else if (live) {
+    scoreEl.className = 'match-score live' + (live.klar ? ' klar' : '');
+    scoreEl.textContent = `${live.h} - ${live.b}`;
   } else {
     scoreEl.className = 'match-score tbd';
     scoreEl.textContent = 'vs';
@@ -2327,7 +2342,7 @@ function byggMatchRad(rad, arSpelad){
   return row;
 }
 
-function byggMatchSektion(titel, matcher, arSpelad){
+function byggMatchSektion(titel, matcher, arSpelad, g){
   const sek = document.createElement('div');
   sek.className = 'match-section';
   const h3 = document.createElement('h3');
@@ -2335,7 +2350,7 @@ function byggMatchSektion(titel, matcher, arSpelad){
   sek.appendChild(h3);
   const lista = document.createElement('div');
   lista.className = 'match-list';
-  matcher.forEach(rad => lista.appendChild(byggMatchRad(rad, arSpelad)));
+  matcher.forEach(rad => lista.appendChild(byggMatchRad(rad, arSpelad, g)));
   sek.appendChild(lista);
   return sek;
 }
@@ -2476,7 +2491,7 @@ function renderSerieVy(){
   // ha nog med matcher att valja bland) - i serieoversikten racker det med en kort
   // fonsterlista, annars svammar sidan igen for serier med manga lag/omgangar.
   const kommande = ((g.matcher && g.matcher.kommande) || []).slice(0, 5);
-  if (kommande.length > 0) el.appendChild(byggMatchSektion('Kommande matcher', kommande, false));
+  if (kommande.length > 0) el.appendChild(byggMatchSektion('Kommande matcher', kommande, false, g));
 
   el.appendChild(byggSerieTabellKort(g));
 
@@ -2599,9 +2614,13 @@ function renderKalender(){
     rad.className = 'kal-rad';
     const harTid = tid && tid !== '00:00';
     const fav = lag => favLagSet.has(kanonisktLag(lag, g.kategori) + '||' + g.kategori) ? ' fav' : '';
-    rad.innerHTML = `<span class="kal-tid${harTid ? '' : ' ej'}">${harTid ? tid : 'Tid ej satt'}</span>
+    const live = liveFor(g, m);
+    const tidHtml = live ? `<span class="kal-tid">${liveStatusHtml(live)}</span>`
+      : `<span class="kal-tid${harTid ? '' : ' ej'}">${harTid ? tid : 'Tid ej satt'}</span>`;
+    const mitten = live ? `<span class="match-score live${live.klar ? ' klar' : ''}">${live.h} - ${live.b}</span>` : '<span class="vs">vs</span>';
+    rad.innerHTML = `${tidHtml}
       <span class="kal-lag"><span class="match-team${fav(hemma)}" data-lag="h">${lagLogoHtml(hemma)}<span class="match-team-name">${hemma}</span></span>
-        <span class="vs">vs</span>
+        ${mitten}
         <span class="match-team${fav(borta)}" data-lag="b">${lagLogoHtml(borta)}<span class="match-team-name">${borta}</span></span></span>
       <span class="kal-info"><span class="chip ${kategoriChipClass(g.kategori)}">${g.kategori}</span><span class="kal-serie">${g.serie}</span>${arena ? `<span class="arena">· ${arena}</span>` : ''}</span>`;
     rad.querySelector('[data-lag="h"]').addEventListener('click', () => filtreraPaLag(hemma, g.serie));
@@ -2647,7 +2666,7 @@ function renderLagOversikt(){
   const medLaget = m => namn.has(m[1]) || namn.has(m[2]);
   const idag = isoDatum(new Date());
   const matchRad = (g, m, spelad) => {
-    const rad = byggMatchRad(m, spelad);
+    const rad = byggMatchRad(m, spelad, g);
     rad.insertAdjacentHTML('beforeend', `<span class="match-serie">${g.serie}</span>`);
     return rad;
   };
@@ -2771,7 +2790,7 @@ function renderLagVy(){
   // 1) Narmast kommande matcher, 2) serietabell, 3) senaste resultat - i den ordningen.
   const kommande = ((g.matcher && g.matcher.kommande) || [])
     .filter(m => m[1] === fokusLag || m[2] === fokusLag).slice(0, 3);
-  if (kommande.length > 0) block.appendChild(byggMatchSektion('Kommande matcher', kommande, false));
+  if (kommande.length > 0) block.appendChild(byggMatchSektion('Kommande matcher', kommande, false, g));
 
   block.appendChild(byggSerieTabellKort(g));
 
@@ -3143,6 +3162,69 @@ function sasongIAdress(){
   return VISA_SASONGSVAL && DATAINDEX && DATAINDEX.sasonger[forsta] ? forsta : null;
 }
 
+/* ---------- Live: pagaende matcher fran Cloudflare-workern (worker/) ----------
+   Workern bevakar swehockeys matchsidor varannan minut och svarar pa /api/live. Sidan fragar
+   bara nar nagon match i sasongens data pagar (eller borjar inom en halvtimme), och bara nar
+   fliken syns. Klara matcher visas som "Slut" tills nasta datauppdatering flyttar dem till
+   spelade matcher. */
+let LIVE = {};          // "serieId|YYYY-MM-DD|hemma|borta" -> {h, b, status, klar, perioder}
+let liveSignatur = '';
+const LIVE_INTERVALL = 60 * 1000;
+function liveFor(g, m){
+  if (!g || !m) return null;
+  return LIVE[`${g.id}|${String(m[0]).slice(0, 10)}|${m[1]}|${m[2]}`] || null;
+}
+function liveStatusText(e){
+  if (e.klar) return 'Slut';
+  const st = String(e.status || '').toLowerCase();
+  const nr = (st.match(/(\d)/) || [])[1];
+  if (/overtime|förläng/.test(st)) return 'Förl.';
+  if (/shoot|penalty|straff/.test(st)) return 'Straffar';
+  if (/intermission|pause|paus/.test(st)) return 'Paus';
+  if (nr && /period/.test(st)) return 'P' + nr;
+  return 'Live';
+}
+function liveStatusHtml(e){
+  return `<span class="live-status${e.klar ? ' klar' : ''}" title="${e.perioder ? 'Perioder: ' + e.perioder : ''}">${liveStatusText(e)}</span>`;
+}
+// Pagar (eller borjar snart) nagon match i den inlasta sasongen?
+function liveBehovs(){
+  const s = RAW[currentSeason];
+  if (!s) return false;
+  const nu = new Date();
+  const idag = isoDatum(nu);
+  const nuMin = nu.getHours() * 60 + nu.getMinutes();
+  if (Object.values(LIVE).some(e => !e.klar)) return true;
+  return s.grupper.some(g => ((g.matcher && g.matcher.kommande) || []).some(m => {
+    const [d, t] = String(m[0]).split(' ');
+    if (d !== idag) return false;
+    if (!t || t === '00:00') return nuMin >= 8 * 60;
+    const [hh, mm] = t.split(':').map(Number);
+    const start = hh * 60 + mm;
+    return nuMin >= start - 30 && nuMin <= start + 6 * 60;
+  }));
+}
+async function hamtaLive(){
+  if (document.hidden || !liveBehovs()) return;
+  try {
+    const svar = await fetch('/api/live', { cache: 'no-store' });
+    if (!svar.ok) return;
+    const data = await svar.json();
+    const ny = {};
+    (data.matcher || []).forEach(e => { ny[`${e.serie}|${String(e.tid).slice(0, 10)}|${e.hemma}|${e.borta}`] = e; });
+    const sig = JSON.stringify(ny);
+    if (sig === liveSignatur) return;
+    liveSignatur = sig;
+    LIVE = ny;
+    if (['serie', 'lagdetalj', 'kalender', 'lagoversikt'].includes(currentView)) renderTable();
+  } catch (e) { /* ingen worker (t.ex. lokalt) - sidan fungerar som vanligt */ }
+}
+function startaLive(){
+  hamtaLive();
+  setInterval(hamtaLive, LIVE_INTERVALL);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) hamtaLive(); });
+}
+
 (async function starta(){
   const laddar = document.getElementById('laddar');
   try {
@@ -3155,6 +3237,7 @@ function sasongIAdress(){
   laddar.remove();
   if (location.hash.length > 1) tillampaAdress();
   else { currentSeason = seasonList()[0]; renderAll(); }
+  startaLive();
 })();
 
 // Installerbar webbapp: service workern gor att sidan kan laggas till pa hemskarmen och

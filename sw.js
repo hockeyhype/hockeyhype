@@ -2,7 +2,7 @@
 // Natet forst for allt (sa att besokaren alltid far farsk data), cachen bara som reserv nar
 // natet inte svarar - t.ex. i en ishall med dalig tackning. Typsnitt och ikoner andras sallan
 // och tas fran cachen direkt. Inget skickas nagonstans; cachen ligger bara i besokarens enhet.
-const CACHE = 'hockeyhype-v2'; // byt version nar ikoner eller typsnitt andras, sa toms gamla cachen
+const CACHE = 'hockeyhype-v3'; // byt version nar ikoner eller typsnitt andras, sa toms gamla cachen
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(['/', '/fonts/fonts.css'])).then(() => self.skipWaiting()));
@@ -18,6 +18,7 @@ self.addEventListener('fetch', e => {
   const req = e.request;
   const url = new URL(req.url);
   if (req.method !== 'GET' || url.origin !== location.origin) return;
+  if (url.pathname.startsWith('/api/')) return; // livedata fran workern - alltid farskt fran natet
 
   if (url.pathname.startsWith('/fonts/') || url.pathname.startsWith('/ikoner/') || url.pathname.startsWith('/logos/')) {
     e.respondWith(caches.match(req).then(svar => svar || hamtaOchSpara(req)));

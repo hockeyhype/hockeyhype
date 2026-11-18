@@ -17,6 +17,9 @@ on:
     # så att den inte krockar med morgon- och kvällskörningarna (som startar på hel timme).
     - cron: "5-55/10 6-22 * * *"
   workflow_dispatch:
+  # Väckning från Cloudflare-workern (worker/) när en bevakad match är slut: läs om just de serierna
+  repository_dispatch:
+    types: [matchklar]
   push:
     branches: [main]
 
@@ -44,9 +47,9 @@ jobs:
         run: |
           kor=true
           bevaka=false
-          if [ "$SCHEMA" = "5-55/10 6-22 * * *" ]; then
+          if [ "$SCHEMA" = "5-55/10 6-22 * * *" ] || [ "${{ github.event_name }}" = repository_dispatch ]; then
             bevaka=true
-            echo "Matchbevakning"
+            echo "Matchbevakning (${{ github.event_name }})"
           elif [ "${{ github.event_name }}" = schedule ] && [ "$SCHEMA" != "0 5 * * *" ]; then
             utc=$(echo "$SCHEMA" | awk '{print $2}')
             forskjutning=$((10#$(date +%z | cut -c2-3)))   # 1 vintertid, 2 sommartid
@@ -78,10 +81,13 @@ jobs:
         if: steps.tid.outputs.kor == 'true'
         env:
           SCHEMA: ${{ github.event.schedule }}
+          SERIER: ${{ github.event.client_payload.serier }}
         run: |
+          # Bara siffror och kommatecken släpps igenom från workerns väckning
+          SERIER=$(echo "$SERIER" | tr -cd '0-9,')
           # Måndagsmorgonen och körningar startade för hand hämtar allt; övriga bara det som kan ha ändrats
           if [ "${{ steps.tid.outputs.bevaka }}" = true ]; then
-            python dagligen.py --bevaka
+            python dagligen.py --bevaka --serier "$SERIER"
           elif [ "${{ github.event_name }}" = workflow_dispatch ] || { [ "$SCHEMA" = "0 5 * * *" ] && [ "$(date +%u)" = 1 ]; }; then
             python dagligen.py --full
           else

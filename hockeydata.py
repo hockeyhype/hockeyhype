@@ -35,6 +35,21 @@ def las_sasong(sasong, mapp=MAPP):
     return info["uppdaterad"], grupper
 
 
+def skriv_livekandidater(sasong, grupper, mapp=MAPP):
+    """data/live-kandidater.json: dagens och de två närmaste dagarnas matcher, för Cloudflare-workern
+    som bevakar pågående matcher (se worker/). Kort fil - workern läser den varannan minut."""
+    idag = datetime.date.today()
+    dagar = {(idag + datetime.timedelta(days=i)).isoformat() for i in range(3)}
+    matcher = []
+    for g in grupper:
+        for m in g["matcher"]["kommande"]:
+            if m[0][:10] in dagar:
+                matcher.append({"serie": g["id"], "tid": m[0], "hemma": m[1], "borta": m[2]})
+    with open(os.path.join(mapp, "live-kandidater.json"), "w", encoding="utf8", newline="\n") as f:
+        json.dump({"sasong": sasong, "skapad": datetime.datetime.now().isoformat(timespec="minutes"),
+                   "matcher": sorted(matcher, key=lambda m: m["tid"])}, f, ensure_ascii=False, separators=(",", ":"))
+
+
 def spara_sasong(sasong, uppdaterad, grupper, mapp=MAPP):
     """Skriver en fil per distrikt (i den ordning distrikten först förekommer) och uppdaterar index.json."""
     ordning = []
@@ -49,6 +64,7 @@ def spara_sasong(sasong, uppdaterad, grupper, mapp=MAPP):
         with open(os.path.join(mapp, sasong, fil), "w", encoding="utf8", newline="\n") as f:
             json.dump({"distrikt": d, "grupper": gs}, f, ensure_ascii=False, separators=(",", ":"))
         distrikt.append({"namn": d, "fil": fil, "grupper": len(gs)})
+    skriv_livekandidater(sasong, grupper, mapp)
     index = las_index(mapp)
     # tid = klockslaget for korningen (svensk tid - GitHub-korningen har TZ=Europe/Stockholm)
     index["sasonger"][sasong] = {"uppdaterad": uppdaterad, "tid": datetime.datetime.now().strftime("%H:%M"),
