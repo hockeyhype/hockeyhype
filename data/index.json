@@ -13,22 +13,22 @@
   },
   "2026-27": {
    "uppdaterad": "2026-11-18",
-   "tid": "06:54",
+   "tid": "21:21",
    "distrikt": [
     {
      "namn": "Stockholm",
      "fil": "stockholm.json",
-     "grupper": 76
+     "grupper": 77
     },
     {
      "namn": "Uppland",
      "fil": "uppland.json",
-     "grupper": 4
+     "grupper": 5
     },
     {
      "namn": "Södermanland",
      "fil": "sodermanland.json",
-     "grupper": 3
+     "grupper": 5
     },
     {
      "namn": "Region Öst",

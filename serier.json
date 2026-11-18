@@ -459,6 +459,12 @@
      "serie": "U14F DM Slutspel B",
      "kategori": "U14F",
      "endast_tabell": true
+    },
+    {
+     "id": "22296",
+     "serie": "U14P Grupp C1",
+     "kategori": "U14P",
+     "endast_tabell": true
     }
    ]
   },
@@ -488,6 +494,12 @@
      "serie": "U14 F Uppland",
      "kategori": "U14F",
      "endast_tabell": true
+    },
+    {
+     "id": "22436",
+     "serie": "U15 Uppland DM",
+     "kategori": "U15P",
+     "endast_tabell": false
     }
    ]
   },
@@ -511,6 +523,18 @@
      "serie": "U14 P Södermanland",
      "kategori": "U14P",
      "endast_tabell": true
+    },
+    {
+     "id": "22434",
+     "serie": "DM U16 Södermanland",
+     "kategori": "U16P",
+     "endast_tabell": false
+    },
+    {
+     "id": "22433",
+     "serie": "DM U15",
+     "kategori": "U15P",
+     "endast_tabell": false
     }
    ]
   },
