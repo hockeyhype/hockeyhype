@@ -87,7 +87,7 @@ jobs:
           SERIER=$(echo "$SERIER" | tr -cd '0-9,')
           # Måndagsmorgonen och körningar startade för hand hämtar allt; övriga bara det som kan ha ändrats
           if [ "${{ steps.tid.outputs.bevaka }}" = true ]; then
-            python dagligen.py --bevaka --serier "$SERIER"
+            python dagligen.py --bevaka --las-om "$SERIER"
           elif [ "${{ github.event_name }}" = workflow_dispatch ] || { [ "$SCHEMA" = "0 5 * * *" ] && [ "$(date +%u)" = 1 ]; }; then
             python dagligen.py --full
           else

@@ -2,7 +2,7 @@
 
     python dagligen.py                  # hämtar bara det som kan ha ändrats (se nedan)
     python dagligen.py --full           # hämtar allt (veckokörningen och körningar för hand)
-    python dagligen.py --bevaka --serier 22390,21450   # samma, plus dessa serier (väckning från workern)
+    python dagligen.py --bevaka --las-om 22390,21450   # samma, plus dessa serier (väckning från workern)
     python dagligen.py --bevaka         # matchbevakningen (var 10:e minut): bara serier med en match
                                         # som nyss borde ha tagit slut, och sparar bara om något ändrats
 
@@ -160,7 +160,7 @@ def main():
     ap.add_argument("--data", default=hockeydata.MAPP)
     ap.add_argument("--full", action="store_true", help="hämta allt för alla serier")
     ap.add_argument("--bevaka", action="store_true", help="bara serier med en nyss avslutad match utan resultat")
-    ap.add_argument("--serier", default="", help="med --bevaka: läs dessutom om dessa serier (kommaseparerade id), "
+    ap.add_argument("--las-om", default="", help="med --bevaka: läs dessutom om dessa serier (kommaseparerade id), "
                     "t.ex. när Cloudflare-workern sett att en match är slut")
     args = ap.parse_args()
 
@@ -171,7 +171,7 @@ def main():
 
     grupper, par, varningar, antal, satt = [], [], [], 0, {}
     nu = datetime.datetime.now()
-    tvingade = {x.strip() for x in args.serier.split(",") if x.strip()}  # svensk tid (TZ=Europe/Stockholm i GitHub-körningen)
+    tvingade = {x.strip() for x in args.las_om.split(",") if x.strip()}  # svensk tid (TZ=Europe/Stockholm i GitHub-körningen)
     print("Hämtar allt (--full)" if args.full else "Matchbevakning" if args.bevaka else "Hämtar bara det som kan ha ändrats")
     for distrikt, info in konfig["distrikt"].items():
         for s in info["grupper"]:
