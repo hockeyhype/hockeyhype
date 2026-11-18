@@ -15,6 +15,7 @@ GitHub Actions (`.github/workflows/daglig-uppdatering.yml`) kör två gånger om
 
 - **Morgon:** 05:00 UTC, det vill säga 06:00 vintertid och 07:00 sommartid.
 - **Kväll:** 22:00 svensk tid på vardagar och 20:00 på helger, året runt. Båda UTC-timmarna schemaläggs, och steget "Kontrollera tiden" släpper bara igenom den som motsvarar rätt svensk tid.
+- **Matchbevakning:** var 10:e minut (minut 5, 15, 25 ...) kl 06-22 UTC. `dagligen.py --bevaka` läser bara serier med en match som startade för 75 minuter till 6 timmar sedan och ännu saknar resultat. Kommer resultatet hämtas tabell och spelarstatistik för serien. Datan sparas och sidan publiceras bara om något ändrats. Statistik som fylls i senare fångas av kvällskörningen.
 
 Varje körning:
 

@@ -1,4 +1,5 @@
 # Hämtar färsk data från stats.swehockey.se varje morgon och kväll, sparar index.html och publicerar sidan.
+# Dessutom matchbevakning var 10:e minut dagtid: serier med en nyss avslutad match läses om direkt.
 # Körs även vid push till main (publicerar bara) och kan startas för hand under Actions -> Run workflow.
 name: Daglig uppdatering
 
@@ -11,6 +12,10 @@ on:
     - cron: "0 21 * * 1-5"  # 22:00 vintertid
     - cron: "0 18 * * 0,6"  # 20:00 sommartid
     - cron: "0 19 * * 0,6"  # 20:00 vintertid
+    # Matchbevakning var 10:e minut, kl 07-23 vintertid / 08-24 sommartid. Läser bara serier där en
+    # match nyss borde ha tagit slut och publicerar bara om något ändrats. Minuterna 5, 15, 25 ...
+    # så att den inte krockar med morgon- och kvällskörningarna (som startar på hel timme).
+    - cron: "5-55/10 6-22 * * *"
   workflow_dispatch:
   push:
     branches: [main]
@@ -29,6 +34,8 @@ jobs:
       TZ: Europe/Stockholm
     outputs:
       kor: ${{ steps.tid.outputs.kor }}
+      bevaka: ${{ steps.tid.outputs.bevaka }}
+      andrat: ${{ steps.spara.outputs.andrat }}
     steps:
       - name: Kontrollera tiden
         id: tid
@@ -36,7 +43,11 @@ jobs:
           SCHEMA: ${{ github.event.schedule }}
         run: |
           kor=true
-          if [ "${{ github.event_name }}" = schedule ] && [ "$SCHEMA" != "0 5 * * *" ]; then
+          bevaka=false
+          if [ "$SCHEMA" = "5-55/10 6-22 * * *" ]; then
+            bevaka=true
+            echo "Matchbevakning"
+          elif [ "${{ github.event_name }}" = schedule ] && [ "$SCHEMA" != "0 5 * * *" ]; then
             utc=$(echo "$SCHEMA" | awk '{print $2}')
             forskjutning=$((10#$(date +%z | cut -c2-3)))   # 1 vintertid, 2 sommartid
             lokal=$((utc + forskjutning))
@@ -45,6 +56,7 @@ jobs:
             echo "Schema $SCHEMA = kl $lokal svensk tid, kvällskörningen ska vara kl $onskad: kör=$kor"
           fi
           echo "kor=$kor" >> "$GITHUB_OUTPUT"
+          echo "bevaka=$bevaka" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@v4
         if: steps.tid.outputs.kor == 'true'
       - uses: actions/setup-python@v5
@@ -68,12 +80,15 @@ jobs:
           SCHEMA: ${{ github.event.schedule }}
         run: |
           # Måndagsmorgonen och körningar startade för hand hämtar allt; övriga bara det som kan ha ändrats
-          if [ "${{ github.event_name }}" = workflow_dispatch ] || { [ "$SCHEMA" = "0 5 * * *" ] && [ "$(date +%u)" = 1 ]; }; then
+          if [ "${{ steps.tid.outputs.bevaka }}" = true ]; then
+            python dagligen.py --bevaka
+          elif [ "${{ github.event_name }}" = workflow_dispatch ] || { [ "$SCHEMA" = "0 5 * * *" ] && [ "$(date +%u)" = 1 ]; }; then
             python dagligen.py --full
           else
             python dagligen.py
           fi
       - name: Spara ändringar
+        id: spara
         if: steps.tid.outputs.kor == 'true'
         run: |
           git config user.name "github-actions[bot]"
@@ -81,9 +96,13 @@ jobs:
           git add data serier.json
           if git diff --staged --quiet; then
             echo "Inga ändringar."
+            echo "andrat=false" >> "$GITHUB_OUTPUT"
           else
-            git commit -m "Daglig uppdatering $(date '+%F %H:%M')"
+            if [ "${{ steps.tid.outputs.bevaka }}" = true ]; then rubrik="Matchbevakning"; else rubrik="Daglig uppdatering"; fi
+            git commit -m "$rubrik $(date '+%F %H:%M')"
+            git pull --rebase   # om något annat hunnit pushas under körningen
             git push
+            echo "andrat=true" >> "$GITHUB_OUTPUT"
           fi
 
   # Bygget och publiceringen ar separata jobb (som i GitHubs egen mall): da hinner det uppladdade
@@ -91,7 +110,8 @@ jobs:
   # publiceringen inte hittade paketet.
   bygg:
     needs: uppdatera
-    if: ${{ !failure() && !cancelled() && needs.uppdatera.outputs.kor != 'false' }}
+    # Matchbevakningen publicerar bara när den faktiskt hittat något nytt
+    if: ${{ !failure() && !cancelled() && needs.uppdatera.outputs.kor != 'false' && (needs.uppdatera.outputs.bevaka != 'true' || needs.uppdatera.outputs.andrat == 'true') }}
     runs-on: ubuntu-latest
     permissions:
       contents: read

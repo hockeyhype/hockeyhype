@@ -2,6 +2,8 @@
 
     python dagligen.py                  # hämtar bara det som kan ha ändrats (se nedan)
     python dagligen.py --full           # hämtar allt (veckokörningen och körningar för hand)
+    python dagligen.py --bevaka         # matchbevakningen (var 10:e minut): bara serier med en match
+                                        # som nyss borde ha tagit slut, och sparar bara om något ändrats
 
 1. Läser vilka serier som ska med från serier.json (skapas av hitta_serier.py).
 2. Hämtar serierna från swehockey, men bara det som behövs:
@@ -27,9 +29,30 @@ sys.path.insert(0, MAPP)
 import hockeydata, swehockey
 
 IGAR = (datetime.date.today() - datetime.timedelta(days=1)).isoformat()
+# Matchbevakningen: en match bevakas från FORST efter nedsläpp tills resultatet finns (högst SIST)
+BEVAKA_FORST = datetime.timedelta(minutes=75)
+BEVAKA_SIST = datetime.timedelta(hours=6)
 
 
-def hamta(s, old, full):
+def match_att_bevaka(old, nu):
+    """Första kommande match i serien som borde vara slutspelad men saknar resultat (eller None)."""
+    if not old:
+        return None
+    for m in old["matcher"]["kommande"]:
+        try:
+            start = datetime.datetime.strptime(m[0], "%Y-%m-%d %H:%M")
+        except ValueError:
+            continue  # tid saknas
+        if start + BEVAKA_FORST <= nu <= start + BEVAKA_SIST:
+            return m
+    return None
+
+
+def utan_tidsstampel(g):
+    return {k: v for k, v in g.items() if k != "uppdaterad"}
+
+
+def hamta(s, old, full, bevaka=False):
     """Hämtar en serie. Returnerar (grupp, sätt) där sätt är full, schema, avslutad eller tabell."""
     gid = s["id"]
     if s.get("endast_tabell"):
@@ -39,7 +62,7 @@ def hamta(s, old, full):
             return old, "avslutad"
         matcher = swehockey.schedule(gid)
         andrad = swehockey.TODAY if not old or matcher["spelade"] != old["matcher"]["spelade"] else old.get("andrad")
-        if old and not full and andrad == old.get("andrad") and (andrad or "") < IGAR:
+        if old and not full and andrad == old.get("andrad") and (bevaka or (andrad or "") < IGAR):
             return dict(old, matcher=matcher, uppdaterad=swehockey.TODAY), "schema"
         return {"id": gid, "serie": s["serie"], "kategori": s["kategori"], "uppdaterad": swehockey.TODAY,
                 "endast_tabell": True, "andrad": andrad, "spelare": [], "tabell": swehockey.standings(gid),
@@ -52,7 +75,8 @@ def hamta(s, old, full):
         matcher = swehockey.schedule(gid)
         nytt = matcher["spelade"] != old["matcher"]["spelade"]
         # Statistiken kan fyllas i efter att resultatet förts in - hämta därför fullt ett dygn till
-        nyligen = (old.get("andrad") or "") >= IGAR
+        # (inte i matchbevakningen, som annars skulle hämta allt var 10:e minut - kvällskörningen tar det)
+        nyligen = not bevaka and (old.get("andrad") or "") >= IGAR
         if not nytt and not nyligen:
             return dict(old, matcher=matcher, uppdaterad=swehockey.TODAY), "schema"
     else:
@@ -134,6 +158,7 @@ def main():
     ap.add_argument("--serier", default=os.path.join(MAPP, "serier.json"))
     ap.add_argument("--data", default=hockeydata.MAPP)
     ap.add_argument("--full", action="store_true", help="hämta allt för alla serier")
+    ap.add_argument("--bevaka", action="store_true", help="bara serier med en nyss avslutad match utan resultat")
     args = ap.parse_args()
 
     konfig = json.load(open(args.serier, encoding="utf8"))
@@ -142,13 +167,22 @@ def main():
     gamla = {g["id"]: g for g in gamla}
 
     grupper, par, varningar, antal, satt = [], [], [], 0, {}
-    print("Hämtar allt (--full)" if args.full else "Hämtar bara det som kan ha ändrats")
+    nu = datetime.datetime.now()  # svensk tid (TZ=Europe/Stockholm i GitHub-körningen)
+    print("Hämtar allt (--full)" if args.full else "Matchbevakning" if args.bevaka else "Hämtar bara det som kan ha ändrats")
     for distrikt, info in konfig["distrikt"].items():
         for s in info["grupper"]:
             antal += 1
             old = gamla.get(s["id"])
+            if args.bevaka:
+                m = match_att_bevaka(old, nu)
+                if not m:
+                    if old:
+                        old["distrikt"] = distrikt
+                        grupper.append(old)
+                    continue
+                print(f"bevakar  {s['serie']}: {m[1]} - {m[2]} ({m[0]})", flush=True)
             try:
-                new, hur = hamta(s, old, args.full)
+                new, hur = hamta(s, old, args.full, args.bevaka)
                 satt[hur] = satt.get(hur, 0) + 1
                 print(f"{hur:9} {distrikt}: {s['serie']} ({s['id']})", flush=True)
                 skal = fel_i_serie(old, new)
@@ -176,6 +210,9 @@ def main():
         print(f"AVBRUTET: {len(varningar)} av {antal} serier gick inte att uppdatera - swehockey kan ha ändrat sina sidor")
         return 1
 
+    if args.bevaka and all(new is old or utan_tidsstampel(new) == utan_tidsstampel(old) for old, new in par):
+        print(f"KLART: inget nytt ({len(par)} serier kontrollerade, {swehockey.ANROP['natverk']} sidor från swehockey) - sparar inget")
+        return 0
     hockeydata.spara_sasong(sasong, swehockey.TODAY, grupper, args.data)
     sammanstallning = ", ".join(f"{n} {h}" for h, n in sorted(satt.items()))
     print(f"KLART: {len(grupper)} serier sparade i {args.data} ({sammanstallning}). "
