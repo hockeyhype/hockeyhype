@@ -639,12 +639,14 @@ tr.favorit-lag-rad td{background:var(--accent-soft);}
 .mv-status{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);}
 .mv-perioder{font-size:12px;color:var(--text-faint);font-variant-numeric:tabular-nums;}
 .mv-info{margin-top:10px;text-align:center;font-size:12px;color:var(--text-muted);}
-.mv-flikar{display:flex;gap:4px;margin-bottom:14px;overflow-x:auto;border-bottom:1px solid var(--border);}
-.mv-flikar button{flex:none;display:inline-flex;align-items:center;gap:6px;background:none;border:0;border-bottom:3px solid transparent;padding:9px 12px;margin-bottom:-1px;
+.mv-flikar{display:flex;gap:4px;margin-bottom:14px;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;box-shadow:inset 0 -1px 0 var(--border);}
+.mv-flikar::-webkit-scrollbar{display:none;}
+.mv-flikar button{flex:none;display:inline-flex;align-items:center;gap:6px;background:none;border:0;border-bottom:3px solid transparent;padding:9px 12px;
   font-family:"Karla";font-size:13.5px;font-weight:700;color:var(--text-muted);cursor:pointer;}
 .mv-flikar button:hover{color:var(--text);}
 .mv-flikar button.active{color:var(--accent);border-bottom-color:var(--accent);}
 .mv-flik-ikon{width:16px;height:16px;flex:none;}
+.mv-flik-kort{display:none;}
 .if-topp .mh-nr{min-width:20px;font-size:10.5px;}
 .mv-not{margin-bottom:14px;}
 .mv-kort{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:14px;}
@@ -730,6 +732,11 @@ tr.favorit-lag-rad td{background:var(--accent-soft);}
 .if-topp span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .mv-infor .match-section{margin-top:14px;}
 @media (max-width:600px){
+  .mv-flikar{gap:0;}
+  .mv-flikar button{flex:1 1 0;min-width:0;flex-direction:column;gap:3px;padding:7px 2px 6px;font-size:11.5px;line-height:1.15;text-align:center;}
+  .mv-flikar .mv-flik-ikon{width:18px;height:18px;}
+  .mv-flik-lang{display:none;}
+  .mv-flik-kort{display:inline;}
   .mv-res{font-size:30px;}
   .mv-lag{font-size:12.5px;}
   .mv-lag .lag-logo{width:36px;height:36px;}
@@ -3068,16 +3075,18 @@ function renderMatchVy(){
   const flikar = [];
   if (d) {
     flikar.push(['handelser', 'Händelser', 'handelser'], ['statistik', 'Statistik', 'statistik']);
-    if (d.lag.h.uppstallning || d.lag.b.uppstallning) flikar.push(['uppstallning', 'Laguppställning', 'uppstallning']);
+    if (d.lag.h.uppstallning || d.lag.b.uppstallning) flikar.push(['uppstallning', 'Laguppställning', 'uppstallning', 'Uppställning']);
   }
-  flikar.push(['lagen', spelad ? 'Lagen' : 'Inför matchen', 'lag']);
+  flikar.push(['lagen', spelad ? 'Lagen' : 'Inför matchen', 'lag', spelad ? 'Lagen' : 'Inför match']);
   if (!flikar.some(([k]) => k === matchFlik)) matchFlik = flikar[0][0];
   if (flikar.length > 1) {
     const nav = document.createElement('div');
     nav.className = 'mv-flikar';
-    flikar.forEach(([k, namn, ikon]) => {
+    flikar.forEach(([k, namn, ikon, kort]) => {
       const b = document.createElement('button');
-      b.type = 'button'; b.innerHTML = vyIkon(ikon, 'mv-flik-ikon') + esc(namn);
+      b.type = 'button';
+      b.innerHTML = vyIkon(ikon, 'mv-flik-ikon') + (kort && kort !== namn
+        ? `<span class="mv-flik-lang">${esc(namn)}</span><span class="mv-flik-kort">${esc(kort)}</span>` : esc(namn));
       b.className = k === matchFlik ? 'active' : '';
       b.addEventListener('click', () => { matchFlik = k; matchFlikManuell = true; renderMatchVy(); });
       nav.appendChild(b);
