@@ -111,7 +111,7 @@ def hamta(s, old, full, bevaka=False):
     # så att lagsidan visar hela truppen. Hämtades inte truppen nu behålls förra körningens rader.
     i_statistik = {(r[1], r[0]) for r in sp + gk}
     if trupp is not None:
-        sp += [[namn, lag, pos, ar, 0, 0, 0, 0, 0] for lag, namn, ar, pos in trupp if (lag, namn) not in i_statistik]
+        sp += [[namn, lag, pos, ar, 0, 0, 0, 0, 0, None] for lag, namn, ar, pos in trupp if (lag, namn) not in i_statistik]
     elif old:
         sp += [r for r in old["spelare"] if r[4] == 0 and (r[1], r[0]) not in i_statistik]
     andrad = swehockey.TODAY if not old or utan_id(matcher["spelade"]) != utan_id(old["matcher"]["spelade"]) else old.get("andrad")

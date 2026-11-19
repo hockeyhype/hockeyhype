@@ -84,7 +84,7 @@ Kör skriptet igen när nya grupper tillkommer under säsongen (t.ex. DM eller s
 
 ## Dataformat
 
-- `spelare`: `[namn, lag, pos, födelseår, GP, G, A, TP, PIM]`
+- `spelare`: `[namn, lag, pos, födelseår, GP, G, A, TP, PIM, tröjnummer]` (tröjnumret kan saknas i äldre data och för spelare som bara finns i truppen)
 - `malvakter`: `[namn, lag, födelseår, GPT, GKD, GPI, MIP, GA, SVS, SOG, SVS%, GAA, SO, W, L]`
 - `tabell`: `[placering, lag, GP, W, T, L, målskillnad, poäng]`
 - `matcher.spelade`: `[datum, hemma, borta, hemmamål, bortamål, arena, match-id]`, med den senaste först. Match-id:t är swehockeys (länken i spelschemat), `null` om matchen saknar matchsida

@@ -531,6 +531,9 @@ tr.favorit-lag-rad td{background:var(--accent-soft);}
 .kal-lage{display:inline-flex;gap:2px;background:var(--surface-2);padding:3px;border-radius:8px;}
 .kal-lage button{border:0;background:transparent;padding:6px 12px;border-radius:6px;cursor:pointer;font:inherit;font-size:12.5px;font-weight:600;color:var(--text-muted);}
 .kal-lage button.active{background:var(--accent);color:#fff;}
+.kal-fler{display:block;margin:4px auto 0;border:1px solid var(--border);background:var(--surface);color:var(--text-muted);
+  border-radius:999px;padding:7px 16px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;}
+.kal-fler:hover{border-color:var(--accent);color:var(--text);}
 .kal-lag .match-team.fav .match-team-name{color:var(--accent-strong);}
 .standings-card h4 .pin-btn{color:var(--banner-ink);}
 .standings-card h4 .pin-btn.active{color:var(--banner-pin);}
@@ -626,10 +629,12 @@ tr.favorit-lag-rad td{background:var(--accent-soft);}
 .mv-perioder{font-size:12px;color:var(--text-faint);font-variant-numeric:tabular-nums;}
 .mv-info{margin-top:10px;text-align:center;font-size:12px;color:var(--text-muted);}
 .mv-flikar{display:flex;gap:4px;margin-bottom:14px;overflow-x:auto;border-bottom:1px solid var(--border);}
-.mv-flikar button{flex:none;background:none;border:0;border-bottom:3px solid transparent;padding:9px 12px;margin-bottom:-1px;
+.mv-flikar button{flex:none;display:inline-flex;align-items:center;gap:6px;background:none;border:0;border-bottom:3px solid transparent;padding:9px 12px;margin-bottom:-1px;
   font-family:"Karla";font-size:13.5px;font-weight:700;color:var(--text-muted);cursor:pointer;}
 .mv-flikar button:hover{color:var(--text);}
 .mv-flikar button.active{color:var(--accent);border-bottom-color:var(--accent);}
+.mv-flik-ikon{width:16px;height:16px;flex:none;}
+.if-topp .mh-nr{min-width:20px;font-size:10.5px;}
 .mv-not{margin-bottom:14px;}
 .mv-kort{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:14px;}
 .mv-kort h3, .mv-handelser h3{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);
@@ -2643,6 +2648,7 @@ function kalenderDag(iso){
   const namn = `${VECKODAGAR[d.getDay()]} ${d.getDate()} ${MANADER[d.getMonth()]}`;
   if (iso === idag) return `<span class="idag">I dag</span> · ${namn}`;
   if (iso === plusDagar(idag, 1)) return `<span class="idag">I morgon</span> · ${namn}`;
+  if (iso === plusDagar(idag, -1)) return `<span class="idag">I går</span> · ${namn}`;
   return namn.charAt(0).toUpperCase() + namn.slice(1);
 }
 // Kalendern visar favoritseriernas eller favoritlagens kommande matcher - valet sparas i webblasaren
@@ -2650,6 +2656,10 @@ function hamtaKalenderLage(){
   try { return localStorage.getItem('hockeyhype_kalenderlage'); } catch(e){ return null; }
 }
 let kalenderLage = hamtaKalenderLage();
+// Kommande eller spelade matcher i kalendern (sparas i webblasaren), och hur manga spelade som visas
+let kalenderTid = (() => { try { return localStorage.getItem('hockeyhype_kalendertid') || 'kommande'; } catch(e){ return 'kommande'; } })();
+const KAL_SPELADE_STEG = 40;
+let kalSpeladeGrans = KAL_SPELADE_STEG;
 function renderKalender(){
   const el = document.getElementById('kalenderSection');
   el.innerHTML = '';
@@ -2667,12 +2677,23 @@ function renderKalender(){
   head.className = 'kal-head';
   head.innerHTML = `<h2>${vyIkon('kalender')}Kalender</h2><div class="kal-lage" role="tablist">
       <button type="button" data-lage="serier" class="${lage === 'serier' ? 'active' : ''}">${vyIkon('serie')}Favoritserier (${favoriter.length})</button>
-      <button type="button" data-lage="lag" class="${lage === 'lag' ? 'active' : ''}">${vyIkon('lag')}Favoritlag (${lagFavoriter.length})</button></div>`;
+      <button type="button" data-lage="lag" class="${lage === 'lag' ? 'active' : ''}">${vyIkon('lag')}Favoritlag (${lagFavoriter.length})</button></div>
+    <div class="kal-lage" role="tablist">
+      <button type="button" data-tid="kommande" class="${kalenderTid === 'kommande' ? 'active' : ''}">Kommande</button>
+      <button type="button" data-tid="spelade" class="${kalenderTid === 'spelade' ? 'active' : ''}">Spelade</button></div>`;
   head.querySelectorAll('[data-lage]').forEach(b => b.addEventListener('click', () => {
     kalenderLage = b.dataset.lage;
     try { localStorage.setItem('hockeyhype_kalenderlage', kalenderLage); } catch(e){}
     renderKalender();
   }));
+  head.querySelectorAll('[data-tid]').forEach(b => b.addEventListener('click', () => {
+    kalenderTid = b.dataset.tid;
+    kalSpeladeGrans = KAL_SPELADE_STEG;
+    try { localStorage.setItem('hockeyhype_kalendertid', kalenderTid); } catch(e){}
+    renderKalender();
+  }));
+  const spelade = kalenderTid === 'spelade';
+  const lista = g => (g.matcher && (spelade ? g.matcher.spelade : g.matcher.kommande)) || [];
   el.appendChild(head);
 
   const tom = (rubrik, text) => {
@@ -2685,7 +2706,7 @@ function renderKalender(){
 
   if (lage === 'serier') {
     if (!favoriter.length) return tom('Inga favoritserier ännu',
-      `Tryck på stjärnan ☆ vid en serie i ${vyIkon('tabell')}Tabell-vyn (eller i ${vyIkon('serie')}serievyn) så samlas seriens kommande matcher här.`);
+      `Tryck på stjärnan ☆ vid en serie i ${vyIkon('tabell')}Tabell-vyn (eller i ${vyIkon('serie')}serievyn) så samlas seriens matcher här.`);
     favoriter.forEach(g => {
       const b = document.createElement('button');
       b.type = 'button'; b.className = 'kal-fav';
@@ -2695,10 +2716,10 @@ function renderKalender(){
       b.addEventListener('click', () => filtreraPaSerie(g));
       favs.appendChild(b);
     });
-    poster = favoriter.flatMap(g => ((g.matcher && g.matcher.kommande) || []).map(m => ({ g, m })));
+    poster = favoriter.flatMap(g => lista(g).map(m => ({ g, m })));
   } else {
     if (!lagFavoriter.length) return tom('Inga favoritlag ännu',
-      `Öppna ett lag (tryck på laget i en tabell eller i ${vyIkon('lag')}Lag-vyn) och tryck på stjärnan ☆ vid lagets namn, så samlas lagets kommande matcher här.`);
+      `Öppna ett lag (tryck på laget i en tabell eller i ${vyIkon('lag')}Lag-vyn) och tryck på stjärnan ☆ vid lagets namn, så samlas lagets matcher här.`);
     const sedda = new Set();
     poster = [];
     lagFavoriter.forEach(f => {
@@ -2709,7 +2730,7 @@ function renderKalender(){
       b.title = `Öppna ${f.lag} ${f.kategori}`;
       b.addEventListener('click', () => oppnaLagOversikt(f.lag, f.kategori));
       favs.appendChild(b);
-      f.grupper.forEach(g => ((g.matcher && g.matcher.kommande) || []).forEach(m => {
+      f.grupper.forEach(g => lista(g).forEach(m => {
         if (!f.namn.has(m[1]) && !f.namn.has(m[2])) return;
         const nyckel = g.id + '|' + m.join('|'); // tva favoritlag som moter varandra = en match
         if (sedda.has(nyckel)) return;
@@ -2721,17 +2742,21 @@ function renderKalender(){
   el.appendChild(favs);
 
   const idag = isoDatum(new Date());
-  const matcher = poster
-    .filter(({ m }) => String(m[0]).slice(0, 10) >= idag)
+  // Kommande: fran i dag och framat. Spelade: senaste forst, KAL_SPELADE_STEG at gangen.
+  const allaMatcher = poster
+    .filter(({ m }) => spelade || String(m[0]).slice(0, 10) >= idag)
     .filter(({ g, m }) => !search || matchesSearch(m[1]) || matchesSearch(m[2]) || matchesSearch(g.serie))
-    .sort((a, b) => String(a.m[0]).localeCompare(String(b.m[0])) || a.g.serie.localeCompare(b.g.serie, 'sv'));
+    .sort((a, b) => (spelade ? -1 : 1) * String(a.m[0]).localeCompare(String(b.m[0])) || a.g.serie.localeCompare(b.g.serie, 'sv'));
+  const matcher = spelade ? allaMatcher.slice(0, kalSpeladeGrans) : allaMatcher;
 
-  if (!matcher.length) return tom('Inga kommande matcher', search ? 'Inga kommande matcher matchar sökningen.'
+  if (!matcher.length) return tom(spelade ? 'Inga spelade matcher' : 'Inga kommande matcher', search ? `Inga ${spelade ? 'spelade' : 'kommande'} matcher matchar sökningen.`
+    : spelade ? `Dina ${lage === 'serier' ? 'favoritserier' : 'favoritlag'} har inte spelat några matcher ännu den här säsongen.`
     : `Det finns inga kommande matcher inlagda för dina ${lage === 'serier' ? 'favoritserier' : 'favoritlag'} just nu.`);
 
   let dag = null, dagEl = null;
   matcher.forEach(({ g, m }) => {
-    const [datumTid, hemma, borta, arena] = m;
+    const [datumTid, hemma, borta] = m;
+    const arena = spelade ? m[5] : m[3];
     const [datum, tid] = String(datumTid).split(' ');
     if (datum !== dag) {
       dag = datum;
@@ -2744,10 +2769,12 @@ function renderKalender(){
     rad.className = 'kal-rad';
     const harTid = tid && tid !== '00:00';
     const fav = lag => favLagSet.has(kanonisktLag(lag, g.kategori) + '||' + g.kategori) ? ' fav' : '';
-    const live = liveFor(g, m);
-    const tidHtml = live ? `<span class="kal-tid">${liveStatusHtml(live)}</span>`
+    const live = spelade ? null : liveFor(g, m);
+    const tidHtml = spelade ? '<span class="kal-tid ej">Slut</span>'
+      : live ? `<span class="kal-tid">${liveStatusHtml(live)}</span>`
       : `<span class="kal-tid${harTid ? '' : ' ej'}">${harTid ? tid : 'Tid ej satt'}</span>`;
-    const mitten = live ? `<span class="match-score live${live.klar ? ' klar' : ''}">${live.h} - ${live.b}</span>` : '<span class="vs">vs</span>';
+    const mitten = spelade ? `<span class="match-score">${m[3]} - ${m[4]}</span>`
+      : live ? `<span class="match-score live${live.klar ? ' klar' : ''}">${live.h} - ${live.b}</span>` : '<span class="vs">vs</span>';
     rad.innerHTML = `${tidHtml}
       <span class="kal-lag"><span class="match-team${fav(hemma)}" data-lag="h">${lagLogoHtml(hemma)}<span class="match-team-name">${hemma}</span></span>
         ${mitten}
@@ -2761,6 +2788,13 @@ function renderKalender(){
     rad.querySelector('.kal-serie').addEventListener('click', e => { e.stopPropagation(); filtreraPaSerie(g); });
     dagEl.appendChild(rad);
   });
+  if (spelade && allaMatcher.length > matcher.length) {
+    const fler = document.createElement('button');
+    fler.type = 'button'; fler.className = 'kal-fler';
+    fler.textContent = `Visa fler (${allaMatcher.length - matcher.length} till)`;
+    fler.addEventListener('click', () => { kalSpeladeGrans += KAL_SPELADE_STEG; renderKalender(); });
+    el.appendChild(fler);
+  }
   updateSummary(matcher.length, 0);
 }
 
@@ -3012,17 +3046,17 @@ function renderMatchVy(){
   // --- Flikar ---
   const flikar = [];
   if (d) {
-    flikar.push(['handelser', 'Händelser'], ['statistik', 'Statistik']);
-    if (d.lag.h.uppstallning || d.lag.b.uppstallning) flikar.push(['uppstallning', 'Laguppställning']);
+    flikar.push(['handelser', 'Händelser', 'handelser'], ['statistik', 'Statistik', 'statistik']);
+    if (d.lag.h.uppstallning || d.lag.b.uppstallning) flikar.push(['uppstallning', 'Laguppställning', 'uppstallning']);
   }
-  flikar.push(['lagen', spelad ? 'Lagen' : 'Inför matchen']);
+  flikar.push(['lagen', spelad ? 'Lagen' : 'Inför matchen', 'lag']);
   if (!flikar.some(([k]) => k === matchFlik)) matchFlik = flikar[0][0];
   if (flikar.length > 1) {
     const nav = document.createElement('div');
     nav.className = 'mv-flikar';
-    flikar.forEach(([k, namn]) => {
+    flikar.forEach(([k, namn, ikon]) => {
       const b = document.createElement('button');
-      b.type = 'button'; b.textContent = namn;
+      b.type = 'button'; b.innerHTML = vyIkon(ikon, 'mv-flik-ikon') + esc(namn);
       b.className = k === matchFlik ? 'active' : '';
       b.addEventListener('click', () => { matchFlik = k; matchFlikManuell = true; renderMatchVy(); });
       nav.appendChild(b);
@@ -3246,7 +3280,7 @@ function byggInforMatch(g, f, spelad){
     const topp = (g.spelare || []).filter(r => N.has(r[1]) && r[7] >= 1).sort((a, b) => (b[7] - a[7]) || (b[5] - a[5])).slice(0, 3);
     k.innerHTML = `<h3>${lagLogoHtml(lag)}<span>${esc(lag)}</span></h3>${plac}
       ${form.length ? `<div class="if-rubrik">Form, senaste ${form.length}</div><div class="if-formrad">${formHtml}</div>` : ''}
-      ${topp.length ? `<div class="if-rubrik">Poängledare i serien</div>${topp.map(r => `<div class="if-topp"><span>${esc(snyggtNamn(r[0]))}</span><span class="num">${r[5]}+${r[6]} = <b>${r[7]}</b></span></div>`).join('')}` : ''}`;
+      ${topp.length ? `<div class="if-rubrik">Poängledare i serien</div>${topp.map(r => `<div class="if-topp"><span>${r[9] != null ? `<span class="mh-nr">${r[9]}</span>` : ''}${esc(snyggtNamn(r[0]))}</span><span class="num">${r[5]}+${r[6]} = <b>${r[7]}</b></span></div>`).join('')}` : ''}`;
     k.querySelector('h3').addEventListener('click', () => filtreraPaLag(lag, g.serie));
     return k;
   };
@@ -3546,6 +3580,10 @@ const VY_IKONER = {
   fodelsear: '<path d="M4.5 20h15v-6a1.5 1.5 0 0 0-1.5-1.5H6A1.5 1.5 0 0 0 4.5 14z"/><path d="M4.5 16.2c1.2.9 2.5.9 3.7 0s2.5-.9 3.8 0 2.5.9 3.8 0 2.5-.9 3.7 0M12 12.5V9M12 6.6c-.8-.8-.8-1.9 0-3.1.8 1.2.8 2.3 0 3.1z"/>',
   position: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3"/>',
   filter: '<path d="M3.5 5h17l-6.5 8v5.5l-4 2V13z"/>',
+  // Matchsidans flikar: handelselista, stapeldiagram och en femma (tre forwards, tva backar)
+  handelser: '<path d="M10 6h10M10 12h10M10 18h10"/><circle cx="5" cy="6" r="1.6"/><circle cx="5" cy="12" r="1.6"/><circle cx="5" cy="18" r="1.6"/>',
+  statistik: '<path d="M3.5 20.5h17"/><rect x="5" y="12" width="3.4" height="8.5" rx=".6"/><rect x="10.3" y="5" width="3.4" height="15.5" rx=".6"/><rect x="15.6" y="9" width="3.4" height="11.5" rx=".6"/>',
+  uppstallning: '<circle cx="5" cy="6.5" r="2.2"/><circle cx="12" cy="5" r="2.2"/><circle cx="19" cy="6.5" r="2.2"/><circle cx="8.3" cy="15" r="2.2"/><circle cx="15.7" cy="15" r="2.2"/><path d="M9 21h6"/>',
   serie: '<path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5.5a2.5 2.5 0 0 0 2.6 3.9M16 6h2.5a2.5 2.5 0 0 1-2.6 3.9M12 13v4M8.5 21h7M10 17h4v4h-4z"/>',
 };
 // Samma ikon dar en vy namns i text, t.ex. "Tabell-vyn" eller rubriken "Kalender"

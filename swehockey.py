@@ -103,7 +103,7 @@ def roster_births(gid):
 
 
 def players_by_team(gid):
-    """Utespelare: [namn, lag, pos, födelseår, GP, G, A, TP, PIM]
+    """Utespelare: [namn, lag, pos, födelseår, GP, G, A, TP, PIM, tröjnummer]
     Målvakter:  [namn, lag, födelseår, GPT, GKD, GPI, MIP, GA, SVS, SOG, SVS%, GAA, SO, W, L]"""
     players, goalies = [], []
     team = mode = None
@@ -115,7 +115,7 @@ def players_by_team(gid):
         elif c[:4] == ["Rk", "No", "Name", "GPT"]:
             mode = "g"
         elif mode == "p" and len(c) >= 9 and c[2] and re.fullmatch(r"\d+", c[4]):
-            players.append([c[2], team, c[3], None] + [num(x) for x in c[4:9]])
+            players.append([c[2], team, c[3], None] + [num(x) for x in c[4:9]] + [num(c[1]) if c[1].strip() else None])
         elif mode == "g" and len(c) >= 15 and c[2] and re.fullmatch(r"\d+", c[3]):
             goalies.append([c[2], team, None, num(c[3]), num(c[4]), num(c[5]), c[6]] + [num(x) for x in c[7:15]])
     return players, goalies
