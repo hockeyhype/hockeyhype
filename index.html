@@ -2929,7 +2929,9 @@ function renderLagOversikt(){
    MATCHSIDAN (#match/<serie-id>/<datum>/<hemma>/<borta>)
    Nas genom att klicka pa en match i serievyn, lagvyerna eller kalendern.
    Fore match: lagen infor matchen (tabell, form, tidigare moten, poangledare).
-   Under match: stallning och status fran workern (/api/live).
+   Fore och under match: laguppstallning, handelser och statistik fran workern (/api/match/<id>,
+   samma format som matchfilerna), sa snart workern hittat matchen i swehockeys liveoversikt.
+   Stallningen i huvudet kommer fran /api/live.
    Efter match: handelser, statistik och laguppstallning fran data/<sasong>/matcher/<id>.json
    (hamtas av dagligen.py, se matchdata.py).
    ============================================================ */
@@ -2967,6 +2969,28 @@ function laddaMatchData(id){
     .then(r => r.ok ? r.json() : null)
     .catch(() => null)
     .then(d => { MATCHDATA[id] = d; if (!matchFlikManuell) matchFlik = null; if (currentView === 'match') renderTable(); });
+}
+// Matcher som inte ar spelade an: hamtas fran workern och uppdateras varje minut medan matchsidan visas
+const LIVEMATCH = {};   // match-id -> {data, tid}
+function laddaLiveMatch(id, tvinga){
+  const e = LIVEMATCH[id];
+  if (e && (e.laddar || (!tvinga && Date.now() - e.tid < 55 * 1000))) return;
+  LIVEMATCH[id] = { ...(e || {}), laddar: true };
+  fetch(`/api/match/${id}`)
+    .then(r => r.ok ? r.json() : null)
+    .catch(() => null)
+    .then(d => {
+      const forra = e && e.data;
+      LIVEMATCH[id] = { data: d || forra || null, tid: Date.now() };
+      if (!forra && d && !matchFlikManuell) matchFlik = null;
+      if (currentView === 'match' && JSON.stringify(d) !== JSON.stringify(forra)) renderTable();
+    });
+}
+function uppdateraLiveMatch(){
+  const hit = hittaMatch(fokusMatch);
+  if (!hit || hit.spelad) return;
+  const e = liveEntry(hit.g, hit.rad);
+  if (e && e.id) laddaLiveMatch(e.id);
 }
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 // "Blid, Wilmer" -> "Wilmer Blid"
@@ -3032,9 +3056,14 @@ function renderMatchVy(){
   }
   const { g, rad, spelad, id } = hit;
   if (id) laddaMatchData(id);
-  const d = id && MATCHDATA[id] && MATCHDATA[id] !== 'laddar' ? MATCHDATA[id] : null;
-  const laddar = id && MATCHDATA[id] === 'laddar';
   const live = !spelad ? liveFor(g, rad) : null;
+  const liveId = !spelad ? (liveEntry(g, rad) || {}).id : null;
+  if (liveId) laddaLiveMatch(liveId);
+  const d = spelad ? (id && MATCHDATA[id] && MATCHDATA[id] !== 'laddar' ? MATCHDATA[id] : null)
+    : (liveId && LIVEMATCH[liveId] && LIVEMATCH[liveId].data) || null;
+  const laddar = id && MATCHDATA[id] === 'laddar';
+  // Har matchen borjat? (fore nedslapp visas bara laguppstallningen och "Infor matchen")
+  const igang = !!d && (spelad || d.h != null || (d.handelser || []).length > 0);
   const nyckel = JSON.stringify(f);
   if (matchFlikFor !== nyckel) { matchFlikFor = nyckel; matchFlik = null; matchFlikManuell = false; }
 
@@ -3049,7 +3078,7 @@ function renderMatchVy(){
   if (spelad) statusHtml = `<span class="mv-status">${d && !d.klar && d.status ? 'Slut · ej fastställt' : 'Slut'}</span>`;
   else if (live) statusHtml = liveStatusHtml(live);
   else statusHtml = `<span class="mv-status">${tid && tid !== '00:00' ? 'Nedsläpp ' + tid : 'Tid ej satt'}</span>`;
-  const perioder = d ? d.perioder.map(p => p.join('-')).join(', ') : live && live.perioder ? live.perioder : '';
+  const perioder = d && d.perioder.length ? d.perioder.map(p => p.join('-')).join(', ') : live && live.perioder ? live.perioder : '';
 
   const head = document.createElement('div');
   head.className = 'mv-head ' + kategoriChipClass(g.kategori).replace('chip-', 'kort-');
@@ -3073,10 +3102,8 @@ function renderMatchVy(){
 
   // --- Flikar ---
   const flikar = [];
-  if (d) {
-    flikar.push(['handelser', 'Händelser', 'handelser'], ['statistik', 'Statistik', 'statistik']);
-    if (d.lag.h.uppstallning || d.lag.b.uppstallning) flikar.push(['uppstallning', 'Laguppställning', 'uppstallning', 'Uppställning']);
-  }
+  if (igang) flikar.push(['handelser', 'Händelser', 'handelser'], ['statistik', 'Statistik', 'statistik']);
+  if (d && (d.lag.h.uppstallning || d.lag.b.uppstallning)) flikar.push(['uppstallning', 'Laguppställning', 'uppstallning', 'Uppställning']);
   flikar.push(['lagen', spelad ? 'Lagen' : 'Inför matchen', 'lag', spelad ? 'Lagen' : 'Inför match']);
   if (!flikar.some(([k]) => k === matchFlik)) matchFlik = flikar[0][0];
   if (flikar.length > 1) {
@@ -3280,7 +3307,9 @@ function byggUppstallning(d, f){
   }
   const not = document.createElement('div');
   not.className = 'empty-hint lu-not';
-  not.textContent = 'Vid namnet: mål+assist och utvisningsminuter i matchen.';
+  not.textContent = d.h == null && !(d.handelser || []).length
+    ? 'Uppställningen kan ändras fram till nedsläpp.' + (d.lag.h.uppstallning && d.lag.b.uppstallning ? '' : ' Laget som saknas har inte lagt in sin än.')
+    : 'Vid namnet: mål+assist och utvisningsminuter i matchen.';
   wrap.appendChild(not);
   return wrap;
 }
@@ -3797,6 +3826,10 @@ let LIVE = {};          // "serieId|YYYY-MM-DD|hemma|borta" -> {h, b, status, kl
 let liveSignatur = '';
 const LIVE_INTERVALL = 60 * 1000;
 function liveFor(g, m){
+  const e = liveEntry(g, m);
+  return e && e.h != null ? e : null;   // bara matcher som är igång (med ställning)
+}
+function liveEntry(g, m){
   if (!g || !m) return null;
   return LIVE[`${g.id}|${String(m[0]).slice(0, 10)}|${m[1]}|${m[2]}`] || null;
 }
@@ -3839,6 +3872,7 @@ async function hamtaLive(){
     const ny = {};
     (data.matcher || []).forEach(e => { ny[`${e.serie}|${String(e.tid).slice(0, 10)}|${e.hemma}|${e.borta}`] = e; });
     const sig = JSON.stringify(ny);
+    if (currentView === 'match') uppdateraLiveMatch();
     if (sig === liveSignatur) return;
     liveSignatur = sig;
     LIVE = ny;

@@ -3,18 +3,26 @@
 // Varannan minut (cron):
 //   1. Läser hockeyhype.se/data/live-kandidater.json (dagens och närmaste dagarnas matcher, skrivs av
 //      dagligen.py) och väljer matcherna som pågår eller nyss borde ha börjat/slutat.
-//   2. Saknas swehockeys match-id läses seriens spelschema (länken till matchsidan dyker upp när
-//      sekretariatet öppnat matchen i TSM, högst två timmar före start).
+//   2. Saknas swehockeys match-id läses seriens liveöversikt (/StatPage/Live/<serie>/), som listar
+//      dagens matcher med id redan före nedsläpp. Står matchen inte där (t.ex. redan klar) läses
+//      spelschemat i stället.
 //   3. Läser matchsidan (/Game/Events/<id>): ställning, perioder och status.
 //   4. Sparar läget i KV ("live") - bara när något ändrats - och väcker GitHub-uppdateringen
 //      (repository_dispatch "matchklar") för serier där en match just blivit klar.
 //
 // GET /api/live svarar med läget som JSON. Sidan hämtar det varje minut när matcher pågår.
+// GET /api/match/<id> svarar med hela matchen (händelser, statistik, laguppställning) i samma format
+// som data/<säsong>/matcher/<id>.json - för matcher i läget, så att sidan kan visa uppställningen
+// före match och händelserna under match.
 
 const SWEHOCKEY = 'https://stats.swehockey.se';
 const KANDIDATER = 'https://hockeyhype.se/data/live-kandidater.json';
+import { tolkaHelMatch, tolkaLivevy } from './matchdata.js';
+export { tolkaHelMatch, tolkaLivevy };
+
 const UA = 'Mozilla/5.0 (compatible; hockeyhype-live; +https://hockeyhype.se/om.html)';
-const FORE = 30;             // minuter före nedsläpp vi börjar titta
+const FORE = 90;             // minuter före nedsläpp vi börjar titta (id:t behövs för laguppställningen)
+const FORE_MATCHSIDA = 5;    // ... och minuter före nedsläpp vi börjar läsa matchsidan
 const EFTER = 4 * 60;        // minuter efter nedsläpp vi slutar (om matchen inte blivit klar)
 const MAX_ANROP = 40;        // gratisplanen tillåter 50 anrop till andra sajter per körning
 const BEHALL_TIMMAR = 18;    // klara matcher ligger kvar i läget så här länge
@@ -113,19 +121,36 @@ export async function bevaka(env, nu = new Date(), hamtaFn = hamta) {
   let anrop = 0;
   const klaraSerier = new Set();
 
-  // 1) Match-id: läs spelschemat för serier där vi saknar id
-  const utanId = [...new Set(aktiva.filter(m => !(lage.matcher[nyckel(m)] || {}).id).map(m => m.serie))];
-  for (const serie of utanId) {
+  // 1) Match-id: läs liveöversikten för serier där vi saknar id, och spelschemat för matcher som
+  //    inte står där men borde ha börjat (läses bara var tionde minut - schemat är stort)
+  const utanId = () => aktiva.filter(m => !(lage.matcher[nyckel(m)] || {}).id);
+  const sattId = (m, id) => { lage.matcher[nyckel(m)] = { ...(lage.matcher[nyckel(m)] || {}), id, serie: m.serie,
+    tid: m.tid, hemma: m.hemma, borta: m.borta }; };
+  const tioMinuter = Number(nuSv.slice(15, 16)) <= 1; // sista minutsiffran 0 eller 1
+  for (const serie of [...new Set(utanId().map(m => m.serie))]) {
     if (anrop >= MAX_ANROP) break;
-    // Matcher utan satt tid: läs schemat bara var tionde minut
     const baraUtanTid = aktiva.filter(m => m.serie === serie).every(m => m.tid.endsWith('00:00'));
-    if (baraUtanTid && Number(nuSv.slice(15, 16)) > 1) continue; // sista minutsiffran 0 eller 1
+    if (baraUtanTid && !tioMinuter) continue;
+    try {
+      anrop++;
+      const rader = tolkaLivevy(await hamtaFn(`${SWEHOCKEY}/StatPage/Live/${serie}/`));
+      utanId().filter(m => m.serie === serie).forEach(m => {
+        const r = rader.find(r => r.hemma === m.hemma && r.borta === m.borta);
+        if (r) sattId(m, r.id);
+      });
+    } catch (e) {
+      console.log('livevy', serie, e.message);
+    }
+  }
+  const tillSchema = utanId().filter(m => m.tid.endsWith('00:00') || nuMin >= minuter(m.tid));
+  for (const serie of tioMinuter ? [...new Set(tillSchema.map(m => m.serie))] : []) {
+    if (anrop >= MAX_ANROP) break;
     try {
       anrop++;
       const rader = tolkaSchema(await hamtaFn(`${SWEHOCKEY}/ScheduleAndResults/Schedule/${serie}`));
-      aktiva.filter(m => m.serie === serie).forEach(m => {
+      tillSchema.filter(m => m.serie === serie).forEach(m => {
         const r = rader.find(r => r.datum === m.tid.slice(0, 10) && r.hemma === m.hemma && r.borta === m.borta);
-        if (r) lage.matcher[nyckel(m)] = { ...(lage.matcher[nyckel(m)] || {}), id: r.id, tid: m.tid };
+        if (r) sattId(m, r.id);
       });
     } catch (e) {
       console.log('schema', serie, e.message);
@@ -136,6 +161,7 @@ export async function bevaka(env, nu = new Date(), hamtaFn = hamta) {
   for (const m of aktiva) {
     const k = lage.matcher[nyckel(m)];
     if (!k || !k.id || anrop >= MAX_ANROP) continue;
+    if (!m.tid.endsWith('00:00') && nuMin < minuter(m.tid) - FORE_MATCHSIDA) continue;
     try {
       anrop++;
       const t = tolkaMatch(await hamtaFn(`${SWEHOCKEY}/Game/Events/${k.id}`));
@@ -181,7 +207,8 @@ async function vackGithub(env, serier) {
 // ---------- svaret till sidan ----------
 async function svaraLive(env) {
   const lage = (await env.LIVE.get('live', 'json')) || { matcher: {} };
-  const matcher = Object.values(lage.matcher).filter(m => m.h !== undefined && m.h !== null);
+  // Matcher med id men utan ställning (inte igång än) följer med, så att sidan kan hämta uppställningen
+  const matcher = Object.values(lage.matcher).filter(m => m.id && m.serie);
   return new Response(JSON.stringify({ uppdaterad: lage.uppdaterad || null, matcher }), {
     headers: {
       'Content-Type': 'application/json; charset=utf-8',
@@ -191,13 +218,40 @@ async function svaraLive(env) {
   });
 }
 
+async function svaraMatch(env, id, ctx) {
+  const fel = (status, text) => new Response(text, { status, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
+  if (!/^\d{5,9}$/.test(id)) return fel(400, 'ogiltigt id');
+  const cache = caches.default;
+  const cacheNyckel = new Request(`https://hockeyhype.se/api/match/${id}`);
+  const sparad = await cache.match(cacheNyckel);
+  if (sparad) return sparad;
+  // Bara matcher som workern bevakar - workern ska inte bli en allmän genväg till swehockey
+  const lage = (await env.LIVE.get('live', 'json')) || { matcher: {} };
+  const k = Object.values(lage.matcher).find(m => m.id === id);
+  if (!k) return fel(404, 'matchen bevakas inte');
+  try {
+    const [ev, lu] = await Promise.all([hamta(`${SWEHOCKEY}/Game/Events/${id}`), hamta(`${SWEHOCKEY}/Game/LineUps/${id}`).catch(() => '')]);
+    const m = tolkaHelMatch(ev, lu, id, k.serie);
+    if (!m.hemma) return fel(404, 'ingen matchsida');
+    const svar = new Response(JSON.stringify(m), {
+      headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'public, max-age=60', 'Access-Control-Allow-Origin': '*' },
+    });
+    ctx.waitUntil(cache.put(cacheNyckel, svar.clone()));
+    return svar;
+  } catch (e) {
+    return fel(502, 'swehockey svarar inte');
+  }
+}
+
 export default {
   async scheduled(event, env, ctx) {
     ctx.waitUntil(bevaka(env).then(r => console.log('runda', JSON.stringify(r))));
   },
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
     if (url.pathname === '/api/live') return svaraLive(env);
+    const mm = url.pathname.match(/^\/api\/match\/([^/]+)$/);
+    if (mm) return svaraMatch(env, mm[1], ctx);
     return new Response('Not found', { status: 404 });
   },
 };

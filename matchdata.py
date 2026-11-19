@@ -19,6 +19,9 @@ Sidan (index.html) läser filen när någon öppnar matchen. Formatet:
         utv: "spelare" (eller saknas för lagstraff), "min", "orsak"
         mv_in/mv_ut: "spelare"
 Händelserna ligger i matchordning (swehockey visar senaste först).
+
+Samma tolkning finns i worker/src/matchdata.js (matcher som inte är klara, via /api/match/<id>) -
+ändra båda. Jämför med python verktyg/test_matchdata.py och node worker/test/test.mjs.
 """
 import html, json, os, re
 

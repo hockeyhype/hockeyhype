@@ -1,7 +1,7 @@
 // Kör: node worker/test/test.mjs   (inga beroenden)
 import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
-import { tolkaSchema, tolkaMatch, bevaka } from '../src/index.js';
+import { tolkaSchema, tolkaMatch, bevaka, tolkaLivevy, tolkaHelMatch } from '../src/index.js';
 
 const fil = n => readFileSync(new URL(`./fixtures/${n}`, import.meta.url), 'utf8');
 
@@ -71,5 +71,42 @@ assert.equal(kv.get('live'), fore);
 // Städning dagen efter
 await bevaka(env, kl('2026-09-16T16:00:00Z'), hamtaFn);
 assert.equal(Object.keys(JSON.parse(kv.get('live')).matcher).length, 0);
+
+// --- liveöversikten: id redan före nedsläpp ---
+assert.deepEqual(tolkaLivevy(fil('livevy.html')),
+  [{ id: '1183657', hemma: 'IFK Täby HC', borta: 'Solna SK', text: '18:00', status: 'Waiting for 1st period' }]);
+
+{
+  const kv2 = new Map();
+  const env2 = { LIVE: { get: async k => kv2.has(k) ? JSON.parse(kv2.get(k)) : null, put: async (k, v) => kv2.set(k, v) } };
+  const lista = JSON.stringify({ matcher: [{ serie: '22218', tid: '2026-11-19 18:00', hemma: 'IFK Täby HC', borta: 'Solna SK' }] });
+  const url2 = [];
+  const f2 = async url => {
+    url2.push(url);
+    if (url.endsWith('live-kandidater.json')) return lista;
+    if (url.includes('/StatPage/Live/22218/')) return fil('livevy.html');
+    if (url.includes('/Game/Events/1183657')) return fil('match-live.html');
+    throw new Error('oväntad url ' + url);
+  };
+  // 16:45 svensk tid: 75 min före - id från liveöversikten, matchsidan läses inte än
+  await bevaka(env2, kl('2026-11-19T15:45:00Z'), f2);
+  let l = JSON.parse(kv2.get('live'));
+  const k = l.matcher['22218|2026-11-19|IFK Täby HC|Solna SK'];
+  assert.equal(k.id, '1183657'); assert.equal(k.h, undefined);
+  assert.ok(!url2.some(u => u.includes('/Schedule/') || u.includes('/Game/')), 'varken schema eller matchsida före match');
+  // 18:10: id känt - bara matchsidan
+  url2.length = 0;
+  await bevaka(env2, kl('2026-11-19T17:10:00Z'), f2);
+  assert.deepEqual(url2.slice(1), ['https://stats.swehockey.se/Game/Events/1183657']);
+  assert.equal(JSON.parse(kv2.get('live')).matcher['22218|2026-11-19|IFK Täby HC|Solna SK'].h, 2);
+}
+
+// --- hela matchsidan (samma tolkning som matchdata.py) ---
+const vf = n => readFileSync(new URL(`../../verktyg/test_fixtures/${n}`, import.meta.url), 'utf8');
+const hel = tolkaHelMatch(vf('events-1130378.html'), vf('lineup-1130378.html'), '1130378', '21869');
+assert.equal(hel.hemma, 'Nyköpings SK'); assert.equal(hel.h, 3); assert.equal(hel.b, 4);
+assert.deepEqual(hel.handelser.filter(e => e.typ === 'mal').map(e => e.lag), ['b', 'b', 'h', 'h', 'h', 'b', 'b']);
+assert.deepEqual(hel.lag.h.uppstallning.kedjor[0].spelare.map(p => [p.pos, p.nr]), [['LD', 32], ['RD', 19], ['LW', 11], ['C', 40], ['RW', 6]]);
+assert.equal(tolkaHelMatch(fil('match-klar.html'), '').lag.h.uppstallning, null);
 
 console.log('alla tester ok');
