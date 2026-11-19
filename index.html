@@ -233,6 +233,17 @@ button{font:inherit;color:inherit;}
 }
 .season-tabs button .dot.live{background:var(--accent);}
 
+/* Dator och surfplatta: loggan till vanster, sokrutan i mitten, undertexten till hoger */
+.topbar-tag{color:var(--text-muted);font-size:13px;font-family:"Karla";font-weight:500;line-height:1.4;text-align:right;}
+@media (min-width:641px){
+  .topbar{flex-wrap:nowrap;}
+  .brand, .topbar-tag{flex:1 1 0;min-width:0;}
+  .search-box{flex:0 1 560px;max-width:560px;}
+  .search-box input{padding:12px 38px 12px 40px;font-size:15px;border-radius:10px;}
+  .search-box svg{left:13px;width:17px;height:17px;}
+  .search-box .clear-btn{right:9px;width:22px;height:22px;}
+}
+
 /* ---------- Layout ---------- */
 .layout{display:grid;grid-template-columns:170px 1fr;gap:22px;align-items:start;}
 @media (max-width:860px){.layout{grid-template-columns:minmax(0,1fr);}}
@@ -759,7 +770,7 @@ tr.favorit-lag-rad td{background:var(--accent-soft);}
   .search-box input{font-size:16px;}
   /* Kompaktare huvud: undertexten tar en hel rad och sager inget nytt pa en liten skarm */
   .topbar{gap:10px 12px;padding-bottom:12px;margin-bottom:12px;}
-  .brand .tag{display:none;}
+  .topbar-tag{display:none;}
   /* Uppdateringsdatum och kalla pa loggans rad */
   .topbar-info{display:block;margin-left:auto;text-align:right;font-size:11px;line-height:1.35;color:var(--text-faint);}
   .topbar-info b{color:var(--text-muted);font-weight:600;}
@@ -801,6 +812,14 @@ tr.favorit-lag-rad td{background:var(--accent-soft);}
     top:calc(var(--topbar-h, 77px) + 16px);
     padding:10px 0;margin:-10px 0 4px;
   }
+}
+
+/* ---------- Mobil och surfplatta: huvudet (logga och sok) och vy-valen ligger kvar overst
+   nar man scrollar ---------- */
+@media (max-width:860px){
+  .topbar{position:sticky;top:0;z-index:30;background:var(--bg);padding-top:10px;margin-top:-10px;}
+  /* box-shadow tacker glappet mellan huvudet och vy-valen, sa att innehallet inte syns dar */
+  .rail{position:sticky !important;top:calc(var(--topbar-h, 110px) - 1px);z-index:25;box-shadow:0 -14px 0 var(--bg);}
 }
 
 /* ---------- Mobil filterpanel ---------- */
@@ -885,7 +904,6 @@ tr.favorit-lag-rad td{background:var(--accent-soft);}
     <div class="brand" id="brandHome" role="button" tabindex="0" title="Till startsidan (Tabell, alla filter återställda)">
       <div>
         <h1 class="wordmark" aria-label="hockeyhype.se">hockey<span class="wm-hype">hype</span><span class="wm-se">.se</span></h1>
-        <div class="tag">Ungdomshockey i region Öst &middot; källa: stats.swehockey.se</div>
       </div>
     </div>
     <div class="topbar-info" id="topbarInfo" title="Data hämtad från Svenska Ishockeyförbundets statistiksida, allmänt tillgänglig."></div>
@@ -894,6 +912,7 @@ tr.favorit-lag-rad td{background:var(--accent-soft);}
       <input id="searchInput" type="text" placeholder="Sök spelare, lag eller serie&hellip;" autocomplete="off">
       <button class="clear-btn" id="clearSearchBtn" type="button" aria-label="Rensa sökning" title="Rensa sökning">✕</button>
     </div>
+    <div class="topbar-tag" title="Data hämtad från Svenska Ishockeyförbundets statistiksida, allmänt tillgänglig.">Ungdomshockey i region Öst<br>källa: stats.swehockey.se</div>
     <div class="season-tabs" id="seasonTabs"></div>
   </div>
 
