@@ -5,6 +5,9 @@ name: Matchlogg
 
 on:
   workflow_dispatch:
+  # Engångskörning 2026-11-19 17:20 svensk tid (16:20 UTC). Ta bort när loggen är analyserad.
+  schedule:
+    - cron: "20 16 19 11 *"
 
 concurrency:
   group: matchlogg
