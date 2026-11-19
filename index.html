@@ -2976,13 +2976,14 @@ function laddaLiveMatch(id, tvinga){
   const e = LIVEMATCH[id];
   if (e && (e.laddar || (!tvinga && Date.now() - e.tid < 55 * 1000))) return;
   LIVEMATCH[id] = { ...(e || {}), laddar: true };
-  fetch(`/api/match/${id}`)
+  fetch(`/api/match/${id}`, { cache: 'no-store' })
     .then(r => r.ok ? r.json() : null)
     .catch(() => null)
     .then(d => {
       const forra = e && e.data;
       LIVEMATCH[id] = { data: d || forra || null, tid: Date.now() };
-      if (!forra && d && !matchFlikManuell) matchFlik = null;
+      // Ny data, eller matchen har just borjat: valj standardfliken igen (om besokaren inte sjalv valt)
+      if (d && !matchFlikManuell && (!forra || (forra.h == null && d.h != null))) matchFlik = null;
       if (currentView === 'match' && JSON.stringify(d) !== JSON.stringify(forra)) renderTable();
     });
 }
