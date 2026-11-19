@@ -142,7 +142,7 @@ Frågor eller fel? <a href="mailto:kontakt@hockeyhype.se">kontakt@hockeyhype.se<
 
 def match_li(m, spelad):
     if spelad:
-        d, hemma, borta, hm, bm, arena = m
+        d, hemma, borta, hm, bm, arena = m[:6]  # (sjunde kolumnen är match-id:t)
         return (f'<li><span class="d">{datum(d)}</span><span class="m">{e(hemma)} – {e(borta)}</span>'
                 f'<span class="r">{hm}–{bm}</span><span class="a">{e(arena or "")}</span></li>')
     d, hemma, borta, arena = m
