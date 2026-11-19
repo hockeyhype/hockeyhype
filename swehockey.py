@@ -11,11 +11,12 @@ CACHE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cache", TODAY)
 ANROP = {"sidor": 0, "natverk": 0}  # sidor som behövts, och hur många av dem som hämtades över nätet
 
 
-def get(path):
+def get(path, cache=True):
+    """cache=False: hämta alltid över nätet (matchsidor som ändras under kvällen)."""
     ANROP["sidor"] += 1
     os.makedirs(CACHE, exist_ok=True)
     fn = os.path.join(CACHE, path.strip("/").replace("/", "_") + ".html")
-    if os.path.exists(fn):
+    if cache and os.path.exists(fn):
         return open(fn, encoding="utf8").read()
     ANROP["natverk"] += 1
     req = urllib.request.Request(BASE + path, headers={"User-Agent": "Mozilla/5.0"})
@@ -121,7 +122,8 @@ def players_by_team(gid):
 
 
 def schedule(gid):
-    """spelade: [datum, hemma, borta, hemmamål, bortamål, arena] (senaste först)
+    """spelade: [datum, hemma, borta, hemmamål, bortamål, arena, match-id] (senaste först; match-id är
+             swehockeys id för matchsidan, None om länken saknas)
     kommande: ["datum tid", hemma, borta, arena] (närmast först)"""
     spelade, kommande, date = [], [], None
     for tr in re.findall(r"<tr[^>]*>(.*?)</tr>", content(get(f"/ScheduleAndResults/Schedule/{gid}")), flags=re.S):
@@ -143,7 +145,8 @@ def schedule(gid):
         venue = rest[-1] if len(rest) >= 2 else ""
         rm = re.fullmatch(r"(\d+)\s*-\s*(\d+)", rest[0] if rest else "")
         if rm:
-            spelade.append([date, home, away, int(rm.group(1)), int(rm.group(2)), venue])
+            mid = re.search(r"/Game/Events/(\d+)", tr)
+            spelade.append([date, home, away, int(rm.group(1)), int(rm.group(2)), venue, mid.group(1) if mid else None])
         else:
             kommande.append([f"{date} {tm.group(1) if tm else ''}".strip(), home, away, venue])
     spelade.sort(key=lambda r: r[0], reverse=True)

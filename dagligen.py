@@ -27,7 +27,7 @@ import argparse, datetime, json, os, sys, traceback
 
 MAPP = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, MAPP)
-import hockeydata, swehockey
+import hockeydata, matchdata, swehockey
 
 IGAR = (datetime.date.today() - datetime.timedelta(days=1)).isoformat()
 # Matchbevakningen: en match bevakas från FORST efter nedsläpp tills resultatet finns (högst SIST)
@@ -49,6 +49,15 @@ def match_att_bevaka(old, nu):
     return None
 
 
+def utan_id(spelade):
+    """Spelade matcher utan match-id:t (sjunde kolumnen) - id:t är ingen ändring i sig."""
+    return [r[:6] for r in spelade]
+
+
+def har_id(g):
+    return all(len(r) >= 7 for r in g["matcher"]["spelade"])
+
+
 def utan_tidsstampel(g):
     return {k: v for k, v in g.items() if k != "uppdaterad"}
 
@@ -59,10 +68,10 @@ def hamta(s, old, full, bevaka=False):
     if s.get("endast_tabell"):
         # U14: tabell och spelschema. Samma regler som nedan: avslutade serier hämtas inte, och
         # tabellen hämtas bara när schemat visar nya resultat (eller hände i går eller i dag).
-        if old and not full and old["matcher"]["spelade"] and not old["matcher"]["kommande"]:
+        if old and not full and old["matcher"]["spelade"] and not old["matcher"]["kommande"] and har_id(old):
             return old, "avslutad"
         matcher = swehockey.schedule(gid)
-        andrad = swehockey.TODAY if not old or matcher["spelade"] != old["matcher"]["spelade"] else old.get("andrad")
+        andrad = swehockey.TODAY if not old or utan_id(matcher["spelade"]) != utan_id(old["matcher"]["spelade"]) else old.get("andrad")
         if old and not full and andrad == old.get("andrad") and (bevaka or (andrad or "") < IGAR):
             return dict(old, matcher=matcher, uppdaterad=swehockey.TODAY), "schema"
         return {"id": gid, "serie": s["serie"], "kategori": s["kategori"], "uppdaterad": swehockey.TODAY,
@@ -71,10 +80,11 @@ def hamta(s, old, full, bevaka=False):
 
     # Utan tidigare data, eller med --full, hämtas allt
     if old and not full:
-        if old["matcher"]["spelade"] and not old["matcher"]["kommande"]:
+        # (avslutade serier från före match-id:na läses om en gång för att få id:na)
+        if old["matcher"]["spelade"] and not old["matcher"]["kommande"] and har_id(old):
             return old, "avslutad"
         matcher = swehockey.schedule(gid)
-        nytt = matcher["spelade"] != old["matcher"]["spelade"]
+        nytt = utan_id(matcher["spelade"]) != utan_id(old["matcher"]["spelade"])
         # Statistiken kan fyllas i efter att resultatet förts in - hämta därför fullt ett dygn till
         # (inte i matchbevakningen, som annars skulle hämta allt var 10:e minut - kvällskörningen tar det)
         nyligen = not bevaka and (old.get("andrad") or "") >= IGAR
@@ -104,10 +114,41 @@ def hamta(s, old, full, bevaka=False):
         sp += [[namn, lag, pos, ar, 0, 0, 0, 0, 0] for lag, namn, ar, pos in trupp if (lag, namn) not in i_statistik]
     elif old:
         sp += [r for r in old["spelare"] if r[4] == 0 and (r[1], r[0]) not in i_statistik]
-    andrad = swehockey.TODAY if not old or matcher["spelade"] != old["matcher"]["spelade"] else old.get("andrad")
+    andrad = swehockey.TODAY if not old or utan_id(matcher["spelade"]) != utan_id(old["matcher"]["spelade"]) else old.get("andrad")
     return {"id": gid, "serie": s["serie"], "kategori": s["kategori"], "uppdaterad": swehockey.TODAY,
             "endast_tabell": False, "andrad": andrad, "spelare": sp, "tabell": swehockey.standings(gid),
             "malvakter": gk, "matcher": matcher}, "full"
+
+
+def hamta_matcher(sasong, grupper, data, max_antal):
+    """Hämtar matchsidorna (data/<säsong>/matcher/<id>.json) för spelade matcher som saknar fil eller
+    inte är fastställda än. Nyaste först, högst max_antal per körning (första gången finns hela
+    säsongen att hämta - det sprids då över några körningar). Ej fastställda matcher äldre än två
+    veckor hämtas inte om. Fel stoppar inte körningen."""
+    grans = (datetime.date.today() - datetime.timedelta(days=14)).isoformat()
+    att_hamta = []
+    for g in grupper:
+        for r in g["matcher"]["spelade"]:
+            mid = r[6] if len(r) >= 7 else None
+            if not mid:
+                continue
+            fil = os.path.join(matchdata.mapp(sasong, data), f"{mid}.json")
+            if not os.path.exists(fil) or (r[0] >= grans and matchdata.behover(sasong, mid, data)):
+                att_hamta.append((r[0], mid, g["id"]))
+    att_hamta.sort(reverse=True)
+    hamtade, fel = 0, []
+    for _, mid, serie in att_hamta[:max_antal]:
+        try:
+            matchdata.hamta_och_spara(sasong, mid, serie, data)
+            hamtade += 1
+        except Exception as e:
+            fel.append(f"match {mid} (serie {serie}): {e}")
+    kvar = max(0, len(att_hamta) - max_antal)
+    print(f"Matchsidor: {hamtade} hämtade" + (f", {kvar} kvar till nästa körning" if kvar else "")
+          + (f", {len(fel)} fel" if fel else ""))
+    for f in fel[:10]:
+        print("  " + f)
+    return hamtade
 
 
 def sammanfatta(par):
@@ -162,6 +203,8 @@ def main():
     ap.add_argument("--bevaka", action="store_true", help="bara serier med en nyss avslutad match utan resultat")
     ap.add_argument("--las-om", default="", help="med --bevaka: läs dessutom om dessa serier (kommaseparerade id), "
                     "t.ex. när Cloudflare-workern sett att en match är slut")
+    ap.add_argument("--matcher", type=int, default=None,
+                    help="högst så många matchsidor per körning (standard 400, 40 i matchbevakningen)")
     args = ap.parse_args()
 
     konfig = json.load(open(args.serier, encoding="utf8"))
@@ -216,7 +259,15 @@ def main():
         print(f"AVBRUTET: {len(varningar)} av {antal} serier gick inte att uppdatera - swehockey kan ha ändrat sina sidor")
         return 1
 
+    # Matchsidorna: i matchbevakningen bara för serierna som lästes om nu
+    max_matcher = args.matcher if args.matcher is not None else (40 if args.bevaka else 400)
+    nya_matcher = hamta_matcher(sasong, [n for o, n in par if n is not o] if args.bevaka else grupper,
+                                args.data, max_matcher)
+
     if args.bevaka and all(new is old or utan_tidsstampel(new) == utan_tidsstampel(old) for old, new in par):
+        if nya_matcher:
+            print(f"KLART: {nya_matcher} matchsidor sparade, inga serier ändrade")
+            return 0
         print(f"KLART: inget nytt ({len(par)} serier kontrollerade, {swehockey.ANROP['natverk']} sidor från swehockey) - sparar inget")
         return 0
     hockeydata.spara_sasong(sasong, swehockey.TODAY, grupper, args.data)

@@ -601,6 +601,127 @@ tr.favorit-lag-rad td{background:var(--accent-soft);}
 @media (prefers-reduced-motion: reduce){.live-status::before{animation:none;}}
 .match-venue{flex:none;font-size:11px;color:var(--text-faint);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .serie-vy-tabell{margin-bottom:24px;}
+/* ---------- Matchsidan (klick pa en match) ---------- */
+.match-row.klickbar, .kal-rad.klickbar{cursor:pointer;transition:border-color .12s;}
+.match-row.klickbar:hover, .kal-rad.klickbar:hover{border-color:var(--accent);}
+.mv-head{background:var(--surface);border:1px solid var(--border);border-top:3px solid var(--linje);border-radius:var(--radius);
+  padding:14px 16px 12px;margin-bottom:14px;box-shadow:var(--shadow);}
+.mv-serie{display:flex;align-items:center;gap:8px;min-width:0;margin-bottom:10px;}
+.mv-serielank{font-size:13px;font-weight:700;color:var(--text-muted);text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mv-serielank:hover{color:var(--accent);}
+.mv-tavla{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:12px;}
+.mv-lag{display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:0;padding:4px;cursor:pointer;
+  font-family:"Karla";font-size:14px;font-weight:700;color:var(--text);text-align:center;min-width:0;border-radius:8px;}
+.mv-lag:hover{background:var(--surface-2);}
+.mv-lag span{overflow-wrap:anywhere;line-height:1.25;}
+.mv-lag .lag-logo{width:44px;height:44px;}
+.mv-lag .lag-logo-fallback{font-size:14px;}
+.mv-mitt{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:96px;}
+.mv-res{font-family:"Oswald";font-size:38px;font-weight:700;line-height:1;color:var(--accent-strong);font-variant-numeric:tabular-nums;
+  display:flex;gap:8px;align-items:center;}
+.mv-res span{color:var(--text-faint);font-weight:500;}
+.mv-res.live{color:#C8102E;}
+.mv-res .mv-vs{font-family:"Karla";font-size:14px;text-transform:uppercase;font-weight:700;color:var(--text-faint);}
+.mv-status{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);}
+.mv-perioder{font-size:12px;color:var(--text-faint);font-variant-numeric:tabular-nums;}
+.mv-info{margin-top:10px;text-align:center;font-size:12px;color:var(--text-muted);}
+.mv-flikar{display:flex;gap:4px;margin-bottom:14px;overflow-x:auto;border-bottom:1px solid var(--border);}
+.mv-flikar button{flex:none;background:none;border:0;border-bottom:3px solid transparent;padding:9px 12px;margin-bottom:-1px;
+  font-family:"Karla";font-size:13.5px;font-weight:700;color:var(--text-muted);cursor:pointer;}
+.mv-flikar button:hover{color:var(--text);}
+.mv-flikar button.active{color:var(--accent);border-bottom-color:var(--accent);}
+.mv-not{margin-bottom:14px;}
+.mv-kort{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:14px;}
+.mv-kort h3, .mv-handelser h3{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);
+  font-family:"Karla";font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.mh-nr{display:inline-block;min-width:22px;margin-right:5px;padding:0 4px;border-radius:4px;background:var(--surface-2);
+  color:var(--text-muted);font-size:11px;font-weight:700;text-align:center;font-variant-numeric:tabular-nums;}
+/* Handelser */
+.mv-handelser section{margin-bottom:18px;}
+.mh-lista{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.mh-rad{display:grid;grid-template-columns:44px 58px 26px minmax(0,1fr);align-items:center;gap:8px;padding:8px 12px;border-top:1px solid var(--border);font-size:13px;}
+.mh-rad:first-child{border-top:0;}
+.mh-tid{font-variant-numeric:tabular-nums;color:var(--text-muted);font-size:12px;}
+.mh-lag .lag-logo{width:22px;height:22px;}
+.mh-text{display:flex;flex-direction:column;gap:2px;min-width:0;}
+.mh-huvud{font-weight:600;display:flex;flex-wrap:wrap;align-items:center;gap:2px 6px;}
+.mh-ass{font-size:12px;color:var(--text-muted);}
+.mh-ass .mh-nr{min-width:18px;font-size:10px;margin-right:3px;}
+.mh-malnr{font-weight:500;color:var(--text-faint);font-size:12px;}
+.mh-lage{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:1px 6px;border-radius:999px;background:var(--accent-soft);color:var(--accent-ink);}
+.mh-stallning{font-family:"Oswald";font-size:15px;font-weight:700;color:var(--accent-strong);text-align:center;}
+.mh-mal{background:var(--thead-soft);}
+.mh-ikon{justify-self:center;font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text-muted);background:var(--surface-2);border-radius:4px;padding:2px 6px;white-space:nowrap;}
+.mh-ikon-utv{background:var(--u18-soft);color:var(--u18);}
+.mh-mv_in .mh-huvud, .mh-mv_ut .mh-huvud, .mh-timeout .mh-huvud{font-weight:500;color:var(--text-muted);font-size:12.5px;}
+/* Statistik */
+.ms-lagrad{display:flex;justify-content:space-between;gap:10px;font-size:13px;font-weight:700;margin-bottom:6px;}
+.ms-lagrad span{display:flex;align-items:center;gap:6px;min-width:0;}
+.ms-rad{display:grid;grid-template-columns:70px minmax(0,1fr) 70px;align-items:center;row-gap:4px;padding:8px 0;border-top:1px solid var(--border);}
+.ms-v{font-family:"Oswald";font-size:17px;font-weight:600;font-variant-numeric:tabular-nums;}
+.ms-rad .ms-v:last-of-type{text-align:right;}
+.ms-namn{text-align:center;font-size:12px;color:var(--text-muted);font-weight:600;}
+.ms-stapel{grid-column:1 / -1;height:6px;border-radius:3px;background:var(--u15-soft);overflow:hidden;}
+.ms-stapel span{display:block;height:100%;background:var(--accent);}
+.ms-perioder{width:100%;border-collapse:collapse;font-size:13px;}
+.ms-perioder th, .ms-perioder td{padding:6px 8px;text-align:center;border-top:1px solid var(--border);}
+.ms-perioder thead th{border-top:0;font-size:11px;color:var(--text-faint);font-weight:700;}
+.ms-perioder tbody th{text-align:left;font-weight:700;white-space:nowrap;}
+.ms-perioder tbody th span{margin-left:6px;}
+.ms-perioder td b{font-family:"Oswald";font-size:15px;}
+.ms-sk{display:block;font-size:11px;color:var(--text-faint);}
+.ms-tot{background:var(--surface-2);}
+.ms-forklaring{font-size:11px;color:var(--text-faint);margin-top:6px;}
+.ms-mv{display:grid;grid-template-columns:24px minmax(0,1fr) auto 64px;align-items:center;gap:8px;padding:7px 0;border-top:1px solid var(--border);font-size:13px;}
+.ms-mv:first-of-type{border-top:0;}
+.ms-mv-v{font-size:12px;color:var(--text-muted);}
+.ms-mv-p{text-align:right;font-family:"Oswald";font-weight:600;}
+/* Laguppstallning */
+.mv-uppstallning{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:0 14px;}
+.lu-farg{margin-left:auto;font-size:11px;font-weight:600;text-transform:none;letter-spacing:0;color:var(--text-faint);}
+.lu-kedja{padding:8px 0;border-top:1px solid var(--border);}
+.lu-kedja h4{font-size:11px;color:var(--text-faint);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;}
+.lu-rad{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-bottom:6px;}
+.lu-rad:last-child{margin-bottom:0;}
+.lu-back{grid-template-columns:repeat(2,minmax(0,1fr));padding:0 16%;}
+.lu-mv{grid-template-columns:repeat(2,minmax(0,1fr));}
+.lu-plats{display:flex;flex-direction:column;gap:2px;background:var(--surface-2);border-radius:7px;padding:6px 8px;min-width:0;font-size:12.5px;font-weight:600;position:relative;}
+.lu-plats.tom{background:transparent;border:1px dashed var(--border);}
+.lu-pos{font-size:9.5px;font-weight:700;color:var(--text-faint);letter-spacing:.05em;}
+.lu-namn{overflow-wrap:anywhere;line-height:1.25;}
+.lu-pt{position:absolute;top:5px;right:6px;font-size:10px;font-weight:700;color:var(--accent);}
+.lu-tranare{padding-top:8px;border-top:1px solid var(--border);font-size:12px;color:var(--text-muted);}
+.lu-domare{grid-column:1 / -1;font-size:12px;color:var(--text-muted);margin-bottom:6px;}
+.lu-not{grid-column:1 / -1;}
+/* Infor matchen */
+.if-lagen{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-bottom:8px;}
+.if-lagen .mv-kort{margin-bottom:0;}
+.if-lag h3{cursor:pointer;text-transform:none;letter-spacing:0;font-size:14px;color:var(--text);}
+.if-lag h3:hover{color:var(--accent);}
+.if-plac{display:flex;align-items:baseline;gap:6px;}
+.if-plac b{font-family:"Oswald";font-size:28px;color:var(--accent-strong);}
+.if-plac span{font-size:12px;color:var(--text-muted);}
+.if-tal{font-size:12px;color:var(--text-muted);margin-top:2px;}
+.if-rubrik{font-size:11px;color:var(--text-faint);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin:12px 0 6px;}
+.if-formrad{display:flex;gap:4px;}
+.if-form{width:24px;height:24px;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;}
+.if-V{background:var(--u14);}
+.if-O{background:var(--text-faint);}
+.if-F{background:var(--accent);}
+.if-topp{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;padding:3px 0;}
+.if-topp span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.mv-infor .match-section{margin-top:14px;}
+@media (max-width:600px){
+  .mv-res{font-size:30px;}
+  .mv-lag{font-size:12.5px;}
+  .mv-lag .lag-logo{width:36px;height:36px;}
+  .if-lagen{grid-template-columns:1fr;}
+  .mh-rad{grid-template-columns:38px 50px 22px minmax(0,1fr);gap:6px;padding:8px 10px;}
+  .mv-uppstallning{grid-template-columns:1fr;}
+  .lu-plats{font-size:11.5px;padding:5px 6px;}
+  .lu-back{padding:0 8%;}
+}
+
 .serie-vy-poanglista .table-card{margin:0;}
 
 /* ---------- Lagvy (klick pa ett lag: kommande matcher, serietabell, senaste
@@ -863,6 +984,7 @@ tr.favorit-lag-rad td{background:var(--accent-soft);}
       <div id="lagSection" hidden></div>
       <div id="lagOversiktSection" hidden></div>
       <div id="kalenderSection" hidden></div>
+      <div id="matchSection" hidden></div>
     </main>
   </div>
   <div class="footnote">
@@ -918,6 +1040,7 @@ let sortDir = -1;
 let expandedRow = null;
 let fokusLag = null; // vilket lag Lag-vyn (klick pa ett lag) visar just nu
 let fokusSerie = null; // ...och i vilken serie - lagnamn ar bara unika INOM en serie
+let fokusMatch = null; // matchsidan: {serie (id), datum, hemma, borta}
 let fokusKategori = null; // lagets aldersklass i lagoversikten (laget over hela sasongen)
                         // (tva olika lag i tva olika serier kan raka heta t.ex. "AIK")
 
@@ -1041,7 +1164,7 @@ function standardStatus(){
 }
 // Sokningar och serie-/lagsidor galler alla serier oavsett status - annars skulle t.ex. en lank
 // till ett lag i en avslutad serie inte hitta laget
-function statusUndantag(){ return !!search || currentView === 'serie' || currentView === 'lagdetalj' || currentView === 'lagoversikt'; }
+function statusUndantag(){ return !!search || currentView === 'serie' || currentView === 'lagdetalj' || currentView === 'lagoversikt' || currentView === 'match'; }
 function seasonData(){
   const alla = seasonDataAlla();
   const s = RAW[currentSeason];
@@ -1284,7 +1407,7 @@ function renderFilters(){
   radGrans = RAD_STEG; // filtren andrades - borja om med de forsta raderna
   ['fgFodelsear', 'fgPosition'].forEach(id => { document.getElementById(id).hidden = filterDolt(id); });
   // Kalendern visar favoritserierna - filtren behovs inte dar
-  document.getElementById('filterPanel').hidden = currentView === 'kalender' || currentView === 'lagoversikt';
+  document.getElementById('filterPanel').hidden = currentView === 'kalender' || currentView === 'lagoversikt' || currentView === 'match';
   const grupper = seasonData().grupper;
   const seasonEmpty = grupper.every(g => g.spelare.length === 0);
   document.getElementById('emptyHint').innerHTML = seasonEmpty
@@ -1964,18 +2087,20 @@ function sortSpelare(rows){
 
 function renderTable(){
   syncHistorik();
-  document.getElementById('tableCard').hidden = ['tabell', 'serie', 'lagdetalj', 'kalender', 'lagoversikt'].includes(currentView);
+  document.getElementById('tableCard').hidden = ['tabell', 'serie', 'lagdetalj', 'kalender', 'lagoversikt', 'match'].includes(currentView);
   document.getElementById('standingsSection').hidden = currentView !== 'tabell';
   document.getElementById('serieSection').hidden = currentView !== 'serie';
   document.getElementById('lagSection').hidden = currentView !== 'lagdetalj';
   document.getElementById('kalenderSection').hidden = currentView !== 'kalender';
   document.getElementById('lagOversiktSection').hidden = currentView !== 'lagoversikt';
-  document.getElementById('summaryStats').hidden = currentView === 'kalender' || currentView === 'lagoversikt'; // siffrorna sager inget har
+  document.getElementById('matchSection').hidden = currentView !== 'match';
+  document.getElementById('summaryStats').hidden = currentView === 'kalender' || currentView === 'lagoversikt' || currentView === 'match'; // siffrorna sager inget har
   if (currentView === 'tabell') { renderStandings(); return; }
   if (currentView === 'kalender') { renderKalender(); return; }
   if (currentView === 'serie') { renderSerieVy(); return; }
   if (currentView === 'lagdetalj') { renderLagVy(); return; }
   if (currentView === 'lagoversikt') { renderLagOversikt(); return; }
+  if (currentView === 'match') { renderMatchVy(); return; }
 
   const rowsRaw = getFilteredRows();
   const body = document.getElementById('bodyRows');
@@ -2305,6 +2430,11 @@ function renderStandings(){
 function byggMatchRad(rad, arSpelad, g){
   const row = document.createElement('div');
   row.className = 'match-row';
+  if (g) {
+    row.classList.add('klickbar');
+    row.title = 'Öppna matchen';
+    row.addEventListener('click', () => oppnaMatch(matchNyckel(g, rad)));
+  }
   const [datum, hemma, borta, a, b, arenaOmSpelad] = rad;
   const arena = arSpelad ? arenaOmSpelad : a; // olika kolumnordning for kommande/spelade rader
   const live = !arSpelad && g ? liveFor(g, rad) : null;
@@ -2496,7 +2626,7 @@ function renderSerieVy(){
   el.appendChild(byggSerieTabellKort(g));
 
   const spelade = ((g.matcher && g.matcher.spelade) || []).slice(0, 5);
-  if (spelade.length > 0) el.appendChild(byggMatchSektion('Senaste resultat', spelade, true));
+  if (spelade.length > 0) el.appendChild(byggMatchSektion('Senaste resultat', spelade, true, g));
 
   const { el: poangEl, antal, rowsRaw } = byggSeriePoanglista(true);
   el.appendChild(poangEl);
@@ -2623,9 +2753,12 @@ function renderKalender(){
         ${mitten}
         <span class="match-team${fav(borta)}" data-lag="b">${lagLogoHtml(borta)}<span class="match-team-name">${borta}</span></span></span>
       <span class="kal-info"><span class="chip ${kategoriChipClass(g.kategori)}">${g.kategori}</span><span class="kal-serie">${g.serie}</span>${arena ? `<span class="arena">· ${arena}</span>` : ''}</span>`;
-    rad.querySelector('[data-lag="h"]').addEventListener('click', () => filtreraPaLag(hemma, g.serie));
-    rad.querySelector('[data-lag="b"]').addEventListener('click', () => filtreraPaLag(borta, g.serie));
-    rad.querySelector('.kal-serie').addEventListener('click', () => filtreraPaSerie(g));
+    rad.classList.add('klickbar');
+    rad.title = 'Öppna matchen';
+    rad.addEventListener('click', () => oppnaMatch(matchNyckel(g, m)));
+    rad.querySelector('[data-lag="h"]').addEventListener('click', e => { e.stopPropagation(); filtreraPaLag(hemma, g.serie); });
+    rad.querySelector('[data-lag="b"]').addEventListener('click', e => { e.stopPropagation(); filtreraPaLag(borta, g.serie); });
+    rad.querySelector('.kal-serie').addEventListener('click', e => { e.stopPropagation(); filtreraPaSerie(g); });
     dagEl.appendChild(rad);
   });
   updateSummary(matcher.length, 0);
@@ -2730,6 +2863,420 @@ function renderLagOversikt(){
   el.appendChild(poangEl);
 }
 
+/* ============================================================
+   MATCHSIDAN (#match/<serie-id>/<datum>/<hemma>/<borta>)
+   Nas genom att klicka pa en match i serievyn, lagvyerna eller kalendern.
+   Fore match: lagen infor matchen (tabell, form, tidigare moten, poangledare).
+   Under match: stallning och status fran workern (/api/live).
+   Efter match: handelser, statistik och laguppstallning fran data/<sasong>/matcher/<id>.json
+   (hamtas av dagligen.py, se matchdata.py).
+   ============================================================ */
+const MATCHDATA = {};   // match-id -> data | null (finns inte) | 'laddar'
+let matchFlik = null;   // vald flik pa matchsidan
+let matchFlikFor = null; // ... for vilken match
+let matchFlikManuell = false; // har besokaren sjalv valt fliken?
+function matchNyckel(g, rad){
+  return { serie: g.id, datum: String(rad[0]).slice(0, 10), hemma: rad[1], borta: rad[2] };
+}
+function oppnaMatch(nyckel){
+  fokusMatch = nyckel;
+  search = ''; searchInputEl.value = ''; searchBoxEl.classList.remove('has-value');
+  expandedRow = null;
+  bytVy('match');
+  renderAll();
+  scrollTo(0, 0);
+}
+function hittaMatch(f){
+  const g = f && seasonDataAlla().grupper.find(x => x.id === f.serie);
+  if (!g) return null;
+  const sammaMatch = r => String(r[0]).slice(0, 10) === f.datum && r[1] === f.hemma && r[2] === f.borta;
+  const spelad = ((g.matcher && g.matcher.spelade) || []).find(sammaMatch);
+  if (spelad) return { g, rad: spelad, spelad: true, id: spelad[6] || null };
+  const kommande = ((g.matcher && g.matcher.kommande) || []).find(sammaMatch);
+  if (kommande) return { g, rad: kommande, spelad: false, id: null };
+  return null;
+}
+function laddaMatchData(id){
+  if (!id || MATCHDATA[id] !== undefined) return;
+  MATCHDATA[id] = 'laddar';
+  // ?v= byts vid varje datauppdatering, sa att en match som fastställts efterat inte visas fran cachen
+  const v = encodeURIComponent(`${seasonData().uppdaterad || ''}-${(RAW[currentSeason] && RAW[currentSeason].tid) || ''}`);
+  fetch(`data/${currentSeason}/matcher/${id}.json?v=${v}`)
+    .then(r => r.ok ? r.json() : null)
+    .catch(() => null)
+    .then(d => { MATCHDATA[id] = d; if (!matchFlikManuell) matchFlik = null; if (currentView === 'match') renderTable(); });
+}
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+// "Blid, Wilmer" -> "Wilmer Blid"
+function snyggtNamn(n){
+  const m = String(n || '').match(/^([^,]+),\s*(.+)$/);
+  return m ? `${m[2]} ${m[1]}` : String(n || '');
+}
+function spelareHtml(p){
+  if (!p) return '<span class="mh-anon">Laget</span>';
+  return `<span class="mh-nr">${p.nr}</span>${esc(snyggtNamn(p.namn))}`;
+}
+function periodNamn(p){
+  const s = String(p || '');
+  const nr = (s.match(/^(\d+)/) || [])[1];
+  if (nr && /period/i.test(s)) return `${nr}:${nr === '1' || nr === '2' ? 'a' : 'e'} perioden`;
+  if (/overtime/i.test(s)) return 'Förlängning';
+  if (/shoot|penalty|gws/i.test(s)) return 'Straffläggning';
+  return s;
+}
+const UTV_ORSAK = {
+  'Roughing':'Ruffning', 'Crosschecking':'Crosscheck', 'Cross-checking':'Crosscheck', 'Boarding':'Boarding',
+  'Tripping':'Fällning', 'Hooking':'Hakning', 'Slashing':'Slag', 'Holding':'Hållning', 'Holding the stick':'Hålla klubba',
+  'Interference':'Obstruktion', 'Elbowing':'Armbåge', 'Kneeing':'Knätackling', 'High sticking':'Hög klubba',
+  'High-sticking':'Hög klubba', 'Charging':'Charging', 'Checking from behind':'Tackling bakifrån',
+  'Checking to the head and neck area':'Tackling mot huvud/nacke', 'Head contact':'Huvudtackling',
+  'Too many men':'För många spelare', 'Too many players on ice':'För många spelare på isen', 'Unsportsmanlike conduct':'Osportsligt uppträdande',
+  'Delaying the game':'Fördröjning', 'Delay of game':'Fördröjning', 'Diving':'Filmning', 'Embellishment':'Filmning',
+  'Misconduct':'Disciplinstraff', 'Game misconduct':'Matchstraff', 'Match penalty':'Matchstraff', 'Abuse of officials':'Ovårdat uppträdande',
+  'Spearing':'Stickning', 'Butt-ending':'Klubbända', 'Clipping':'Clipping', 'Leg checking':'Bentackling', 'Kicking':'Sparkning',
+  'Fighting':'Slagsmål', 'Body checking':'Tackling', 'Illegal hit':'Otillåten tackling', 'Instigator':'Anstiftare',
+};
+const utvOrsak = s => UTV_ORSAK[s] || s;
+function lageEtikett(l){
+  const s = String(l || '');
+  if (!s || s === 'EQ') return '';
+  if (/^PP/.test(s)) return 'PP';
+  if (/^SH/.test(s)) return 'SH';
+  if (s === 'GWS') return 'Avgörande straff';
+  if (s === 'PS') return 'Straffslag';
+  if (/EN|ENG/.test(s)) return 'Tom bur';
+  return s;
+}
+const FARGER = { Black:'svart', White:'vit', Blue:'blå', Red:'röd', Yellow:'gul', Green:'grön', Orange:'orange', Grey:'grå', Gray:'grå',
+  Purple:'lila', Brown:'brun', 'Dark Blue':'mörkblå', 'Light Blue':'ljusblå', Navy:'marinblå' };
+function procent(x){ return x == null || isNaN(x) ? '–' : `${(Math.round(x * 10) / 10).toLocaleString('sv-SE')} %`; }
+
+// Kolumnrubriker for perioderna: P1, P2 (, P3), sedan F (forlangning) och S (straffar)
+function periodEtiketter(d){
+  const n = (d.perioder || []).length;
+  const ord = [...new Set((d.handelser || []).map(e => e.period))].filter(p => /^\d+\D*period/i.test(p)).length;
+  const ordinarie = Math.max(ord, Math.min(n, 2));
+  return Array.from({ length: n }, (_, i) => i < ordinarie ? 'P' + (i + 1) : (i === ordinarie ? 'F' : 'S'));
+}
+
+function renderMatchVy(){
+  const el = document.getElementById('matchSection');
+  el.innerHTML = '';
+  const f = fokusMatch;
+  const hit = hittaMatch(f);
+  if (!hit) {
+    el.innerHTML = `<div class="table-card"><div class="empty-state"><div class="big">Hittar inte matchen</div>Matchen finns inte i den valda säsongen. Den kan ha flyttats eller strukits.</div></div>`;
+    return;
+  }
+  const { g, rad, spelad, id } = hit;
+  if (id) laddaMatchData(id);
+  const d = id && MATCHDATA[id] && MATCHDATA[id] !== 'laddar' ? MATCHDATA[id] : null;
+  const laddar = id && MATCHDATA[id] === 'laddar';
+  const live = !spelad ? liveFor(g, rad) : null;
+  const nyckel = JSON.stringify(f);
+  if (matchFlikFor !== nyckel) { matchFlikFor = nyckel; matchFlik = null; matchFlikManuell = false; }
+
+  // --- Huvudet: serie, datum, lagen och stallningen ---
+  const [datumTid] = rad;
+  const tid = spelad ? (d && d.tid) : String(datumTid).split(' ')[1];
+  const arena = spelad ? (rad[5] || (d && d.arena)) : rad[3];
+  const datumText = `${kalenderDag(f.datum).replace(/<[^>]+>/g, '')}${tid && tid !== '00:00' ? ' · ' + tid : ''}`;
+  const hm = spelad ? rad[3] : live ? live.h : null;
+  const bm = spelad ? rad[4] : live ? live.b : null;
+  let statusHtml = '';
+  if (spelad) statusHtml = `<span class="mv-status">${d && !d.klar && d.status ? 'Slut · ej fastställt' : 'Slut'}</span>`;
+  else if (live) statusHtml = liveStatusHtml(live);
+  else statusHtml = `<span class="mv-status">${tid && tid !== '00:00' ? 'Nedsläpp ' + tid : 'Tid ej satt'}</span>`;
+  const perioder = d ? d.perioder.map(p => p.join('-')).join(', ') : live && live.perioder ? live.perioder : '';
+
+  const head = document.createElement('div');
+  head.className = 'mv-head ' + kategoriChipClass(g.kategori).replace('chip-', 'kort-');
+  head.innerHTML = `
+    <div class="mv-serie"><span class="chip ${kategoriChipClass(g.kategori)}">${g.kategori}</span>
+      <a href="#" class="mv-serielank">${esc(g.serie)}</a></div>
+    <div class="mv-tavla">
+      <button type="button" class="mv-lag" data-lag="h">${lagLogoHtml(f.hemma)}<span>${esc(f.hemma)}</span></button>
+      <div class="mv-mitt">
+        <div class="mv-res${live && !live.klar ? ' live' : ''}">${hm != null ? `${hm}<span>–</span>${bm}` : '<span class="mv-vs">vs</span>'}</div>
+        ${statusHtml}
+        ${perioder ? `<div class="mv-perioder">(${esc(perioder)})</div>` : ''}
+      </div>
+      <button type="button" class="mv-lag" data-lag="b">${lagLogoHtml(f.borta)}<span>${esc(f.borta)}</span></button>
+    </div>
+    <div class="mv-info">${esc(datumText)}${arena ? ' · ' + esc(arena) : ''}${d && d.publik ? ` · ${d.publik} åskådare` : ''}</div>`;
+  head.querySelector('.mv-serielank').addEventListener('click', e => { e.preventDefault(); filtreraPaSerie(g); });
+  head.querySelector('[data-lag="h"]').addEventListener('click', () => filtreraPaLag(f.hemma, g.serie));
+  head.querySelector('[data-lag="b"]').addEventListener('click', () => filtreraPaLag(f.borta, g.serie));
+  el.appendChild(head);
+
+  // --- Flikar ---
+  const flikar = [];
+  if (d) {
+    flikar.push(['handelser', 'Händelser'], ['statistik', 'Statistik']);
+    if (d.lag.h.uppstallning || d.lag.b.uppstallning) flikar.push(['uppstallning', 'Laguppställning']);
+  }
+  flikar.push(['lagen', spelad ? 'Lagen' : 'Inför matchen']);
+  if (!flikar.some(([k]) => k === matchFlik)) matchFlik = flikar[0][0];
+  if (flikar.length > 1) {
+    const nav = document.createElement('div');
+    nav.className = 'mv-flikar';
+    flikar.forEach(([k, namn]) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.textContent = namn;
+      b.className = k === matchFlik ? 'active' : '';
+      b.addEventListener('click', () => { matchFlik = k; matchFlikManuell = true; renderMatchVy(); });
+      nav.appendChild(b);
+    });
+    el.appendChild(nav);
+  }
+  if (spelad && !d) {
+    const not = document.createElement('div');
+    not.className = 'empty-hint mv-not';
+    not.textContent = laddar ? 'Hämtar matchen…'
+      : id ? 'Händelser och statistik för matchen hämtas vid nästa uppdatering.'
+      : 'swehockey har ingen matchrapport för den här matchen.';
+    el.appendChild(not);
+  }
+
+  const innehall = document.createElement('div');
+  innehall.className = 'mv-innehall';
+  if (matchFlik === 'handelser') innehall.appendChild(byggHandelser(d, f));
+  else if (matchFlik === 'statistik') innehall.appendChild(byggMatchStatistik(d, f));
+  else if (matchFlik === 'uppstallning') innehall.appendChild(byggUppstallning(d, f));
+  else innehall.appendChild(byggInforMatch(g, f, spelad));
+  el.appendChild(innehall);
+}
+
+function byggHandelser(d, f){
+  const wrap = document.createElement('div');
+  wrap.className = 'mv-handelser';
+  // "Ut ur mal" visas bara nar malvakten gar ut utan att nagon kommer in (tom bur) - inte vid
+  // byten (da racker "In i mal") och inte vid slutsignalen
+  const hs = d.handelser || [];
+  const sek = t => { const [m, x] = String(t).split(':').map(Number); return m * 60 + x; };
+  const slut = Math.max(0, ...hs.map(e => sek(e.tid)));
+  const filtrerade = hs.filter(e => e.typ !== 'mv_ut' || (sek(e.tid) < slut
+    && !hs.some(x => x.typ === 'mv_in' && x.lag === e.lag && x.tid === e.tid)));
+  if (!filtrerade.length) {
+    wrap.innerHTML = '<div class="empty-hint">Inga händelser inlagda för matchen.</div>';
+    return wrap;
+  }
+  let period = null, lista = null;
+  filtrerade.forEach(e => {
+    if (e.period !== period) {
+      period = e.period;
+      const sek = document.createElement('section');
+      sek.innerHTML = `<h3>${esc(periodNamn(period))}</h3>`;
+      lista = document.createElement('div');
+      lista.className = 'mh-lista';
+      sek.appendChild(lista);
+      wrap.appendChild(sek);
+    }
+    const lagNamn = e.lag === 'h' ? f.hemma : e.lag === 'b' ? f.borta : '';
+    const r = document.createElement('div');
+    r.className = `mh-rad mh-${e.typ} mh-sida-${e.lag || 'x'}`;
+    let ikon = '', text = '';
+    if (e.typ === 'mal') {
+      const lage = lageEtikett(e.lage);
+      const ass = (e.assist || []).map(a => spelareHtml(a)).join(', ');
+      ikon = `<span class="mh-stallning">${esc(e.stallning)}</span>`;
+      text = `<span class="mh-huvud">${spelareHtml(e.spelare)}${e.malnr ? `<span class="mh-malnr">(${e.malnr})</span>` : ''}${lage ? `<span class="mh-lage">${esc(lage)}</span>` : ''}</span>`
+        + (ass ? `<span class="mh-ass">Assist: ${ass}</span>` : '');
+    } else if (e.typ === 'utv') {
+      ikon = `<span class="mh-ikon mh-ikon-utv">${e.min} min</span>`;
+      text = `<span class="mh-huvud">${spelareHtml(e.spelare)}</span><span class="mh-ass">${esc(utvOrsak(e.orsak))}</span>`;
+    } else if (e.typ === 'mv_in' || e.typ === 'mv_ut') {
+      ikon = `<span class="mh-ikon">MV</span>`;
+      text = `<span class="mh-huvud">${e.typ === 'mv_in' ? (e.tid === '00:00' ? 'Startar i mål: ' : 'In i mål: ') : 'Ut ur mål: '}${spelareHtml(e.spelare)}</span>`;
+    } else if (e.typ === 'timeout') {
+      ikon = `<span class="mh-ikon">TO</span>`;
+      text = `<span class="mh-huvud">Timeout</span>`;
+    } else {
+      ikon = `<span class="mh-ikon">·</span>`;
+      text = `<span class="mh-huvud">${esc(e.text || '')}</span>`;
+    }
+    r.innerHTML = `<span class="mh-tid">${esc(e.tid)}</span>${ikon}<span class="mh-lag">${lagNamn ? lagLogoHtml(lagNamn) : ''}</span><span class="mh-text">${text}</span>`;
+    lista.appendChild(r);
+  });
+  return wrap;
+}
+
+function byggMatchStatistik(d, f){
+  const wrap = document.createElement('div');
+  wrap.className = 'mv-statistik';
+  const H = d.lag.h, B = d.lag.b;
+  const sum = a => (a || []).reduce((x, y) => x + y, 0);
+  const skH = sum(H.skott), skB = sum(B.skott);
+  const rdH = sum(H.raddningar), rdB = sum(B.raddningar);
+  const ppTal = s => { const m = String(s || '').match(/[\d,]+/); return m ? parseFloat(m[0].replace(',', '.')) : null; };
+  const rader = [
+    ['Skott på mål', skH, skB, String(skH), String(skB)],
+    ['Räddningsprocent', skB ? rdH / skB * 100 : null, skH ? rdB / skH * 100 : null, procent(skB ? rdH / skB * 100 : null), procent(skH ? rdB / skH * 100 : null)],
+    ['Utvisningsminuter', H.pim || 0, B.pim || 0, String(H.pim || 0), String(B.pim || 0)],
+    ['Powerplay', ppTal(H.pp), ppTal(B.pp), ppTal(H.pp) == null ? '–' : procent(ppTal(H.pp)), ppTal(B.pp) == null ? '–' : procent(ppTal(B.pp))],
+  ];
+  const kort = document.createElement('div');
+  kort.className = 'mv-kort';
+  kort.innerHTML = `<div class="ms-lagrad"><span>${lagLogoHtml(f.hemma)}${esc(f.hemma)}</span><span>${esc(f.borta)}${lagLogoHtml(f.borta)}</span></div>`
+    + rader.map(([namn, a, b, ta, tb]) => {
+      const tot = (a || 0) + (b || 0);
+      const andel = tot > 0 ? (a || 0) / tot * 100 : 50;
+      return `<div class="ms-rad"><span class="ms-v">${ta}</span><span class="ms-namn">${namn}</span><span class="ms-v">${tb}</span>
+        <div class="ms-stapel"><span style="width:${andel}%"></span></div></div>`;
+    }).join('');
+  wrap.appendChild(kort);
+
+  // Mal och skott per period
+  const etiketter = periodEtiketter(d);
+  if (etiketter.length) {
+    const per = document.createElement('div');
+    per.className = 'mv-kort';
+    const cell = (sida, i) => {
+      const mal = d.perioder[i] ? d.perioder[i][sida === 'h' ? 0 : 1] : '–';
+      const sk = d.lag[sida].skott && d.lag[sida].skott[i] != null ? d.lag[sida].skott[i] : null;
+      return `<td><b>${mal}</b>${sk != null ? `<span class="ms-sk">${sk}</span>` : ''}</td>`;
+    };
+    const tot = sida => `<td class="ms-tot"><b>${sida === 'h' ? d.h : d.b}</b><span class="ms-sk">${sida === 'h' ? skH : skB}</span></td>`;
+    per.innerHTML = `<h3>Mål och skott per period</h3><div class="table-scroll"><table class="ms-perioder">
+      <thead><tr><th></th>${etiketter.map(e => `<th>${e}</th>`).join('')}<th>Totalt</th></tr></thead>
+      <tbody>${['h', 'b'].map(s => `<tr><th>${lagLogoHtml(s === 'h' ? f.hemma : f.borta)}<span>${esc(d.lag[s].kort || (s === 'h' ? f.hemma : f.borta))}</span></th>${etiketter.map((_, i) => cell(s, i)).join('')}${tot(s)}</tr>`).join('')}</tbody>
+      </table></div><div class="ms-forklaring">Mål i fetstil, skott på mål i grått${etiketter.includes('F') ? ' · F = förlängning' : ''}</div>`;
+    wrap.appendChild(per);
+  }
+
+  // Malvakterna
+  const mv = ['h', 'b'].filter(s => (d.lag[s].malvakter || []).length);
+  if (mv.length) {
+    const k = document.createElement('div');
+    k.className = 'mv-kort';
+    k.innerHTML = '<h3>Målvakter</h3>' + mv.map(s => d.lag[s].malvakter.map(m => `
+      <div class="ms-mv">${lagLogoHtml(s === 'h' ? f.hemma : f.borta)}<span class="ms-mv-namn">${spelareHtml(m)}</span>
+        <span class="ms-mv-v">${m.rdd != null ? `${m.rdd} av ${m.skott} räddade` : ''}</span>
+        <span class="ms-mv-p">${m.skott ? procent(m.rdd / m.skott * 100) : '–'}</span></div>`).join('')).join('');
+    wrap.appendChild(k);
+  }
+  return wrap;
+}
+
+function byggUppstallning(d, f){
+  const wrap = document.createElement('div');
+  wrap.className = 'mv-uppstallning';
+  // Mal och assist i matchen per spelare (lag + nummer)
+  const poang = {};
+  (d.handelser || []).filter(e => e.typ === 'mal').forEach(e => {
+    const plus = (p, i) => { if (!p) return; const k = e.lag + '|' + p.nr; (poang[k] = poang[k] || [0, 0])[i]++; };
+    plus(e.spelare, 0); (e.assist || []).forEach(a => plus(a, 1));
+  });
+  const chip = (sida, p, pos) => {
+    if (!p) return '<span class="lu-plats tom"></span>';
+    const pt = poang[sida + '|' + p.nr];
+    return `<span class="lu-plats"><span class="lu-pos">${pos || ''}</span><span class="lu-namn">${spelareHtml(p)}</span>${pt ? `<span class="lu-pt" title="${pt[0]} mål, ${pt[1]} assist">${pt[0]}+${pt[1]}</span>` : ''}</span>`;
+  };
+  const KEDJA = { '1st Line': '1:a femman', '2nd Line': '2:a femman', '3rd Line': '3:e femman', '4th Line': '4:e femman', '5th Line': '5:e femman' };
+  ['h', 'b'].forEach(sida => {
+    const lag = d.lag[sida];
+    const u = lag.uppstallning;
+    const namn = sida === 'h' ? f.hemma : f.borta;
+    const k = document.createElement('div');
+    k.className = 'mv-kort lu-lag';
+    if (!u) {
+      k.innerHTML = `<h3>${lagLogoHtml(namn)}${esc(namn)}</h3><div class="empty-hint">Ingen laguppställning inlagd.</div>`;
+      wrap.appendChild(k);
+      return;
+    }
+    const farg = lag.farg ? FARGER[lag.farg] || lag.farg.toLowerCase() : '';
+    let html = `<h3>${lagLogoHtml(namn)}<span>${esc(namn)}</span>${farg ? `<span class="lu-farg">${esc(farg)} tröja</span>` : ''}</h3>`;
+    if (u.malvakter.length) html += `<div class="lu-kedja"><h4>Målvakter</h4><div class="lu-rad lu-mv">${u.malvakter.map(p => chip(sida, p, 'GK')).join('')}</div></div>`;
+    u.kedjor.forEach(kd => {
+      const pos = Object.fromEntries(kd.spelare.map(p => [p.pos, p]));
+      const harAnfall = ['LW', 'C', 'RW'].some(x => pos[x]);
+      const harBack = ['LD', 'RD'].some(x => pos[x]);
+      html += `<div class="lu-kedja"><h4>${KEDJA[kd.namn] || esc(kd.namn)}</h4>
+        ${harAnfall ? `<div class="lu-rad lu-anfall">${chip(sida, pos.LW, 'LW')}${chip(sida, pos.C, 'C')}${chip(sida, pos.RW, 'RW')}</div>` : ''}
+        ${harBack ? `<div class="lu-rad lu-back">${chip(sida, pos.LD, 'LD')}${chip(sida, pos.RD, 'RD')}</div>` : ''}</div>`;
+    });
+    const tranare = [lag.tranare && `Tränare: ${esc(snyggtNamn(lag.tranare))}`, lag.asstranare && `Assisterande: ${esc(snyggtNamn(lag.asstranare))}`].filter(Boolean);
+    if (tranare.length) html += `<div class="lu-tranare">${tranare.join(' · ')}</div>`;
+    k.innerHTML = html;
+    wrap.appendChild(k);
+  });
+  const dom = [(d.domare || []).length && `Domare: ${esc(d.domare.join(', '))}`, (d['linjemän'] || []).length && `Linjedomare: ${esc(d['linjemän'].join(', '))}`].filter(Boolean);
+  if (dom.length) {
+    const x = document.createElement('div');
+    x.className = 'lu-domare';
+    x.textContent = '';
+    x.innerHTML = dom.join(' · ');
+    wrap.appendChild(x);
+  }
+  const not = document.createElement('div');
+  not.className = 'empty-hint lu-not';
+  not.textContent = 'Siffran efter namnet är mål+assist i matchen.';
+  wrap.appendChild(not);
+  return wrap;
+}
+
+// Infor matchen (och "Lagen" for spelade matcher): tabellen, formen, tidigare moten och poangledarna
+function byggInforMatch(g, f, spelad){
+  const wrap = document.createElement('div');
+  wrap.className = 'mv-infor';
+  const kat = g.kategori;
+  const grupperIKat = seasonDataAlla().grupper.filter(x => x.kategori === kat);
+  const namnFor = lag => new Set(lagetsNamn(lag, kat).concat([lag]));
+  const hN = namnFor(f.hemma), bN = namnFor(f.borta);
+  const arDenna = (x, r) => x.id === f.serie && String(r[0]).slice(0, 10) === f.datum && r[1] === f.hemma && r[2] === f.borta;
+
+  const lagKort = (lag, N) => {
+    const k = document.createElement('div');
+    k.className = 'mv-kort if-lag';
+    const tr = (g.tabell || []).find(r => N.has(r[1]));
+    const plac = tr && tr[2] > 0
+      ? `<div class="if-plac"><b>${tr[0]}</b><span>plats av ${g.tabell.length}</span></div><div class="if-tal">${tr[7]} poäng · ${tr[2]} matcher · ${tr[3]}-${tr[4]}-${tr[5]} · ${tr[6] > 0 ? '+' : ''}${tr[6]}</div>`
+      : '<div class="if-tal">Inga matcher spelade i serien ännu.</div>';
+    // Formen: de fem senaste spelade matcherna i aldersklassen (fore den har matchen)
+    const form = grupperIKat.flatMap(x => ((x.matcher && x.matcher.spelade) || []).filter(r => (N.has(r[1]) || N.has(r[2])) && !arDenna(x, r)).map(r => ({ x, r })))
+      .filter(({ r }) => !spelad || String(r[0]) <= f.datum)
+      .sort((a, b) => String(b.r[0]).localeCompare(String(a.r[0]))).slice(0, 5);
+    const formHtml = form.map(({ x, r }) => {
+      const hemma = N.has(r[1]);
+      const egna = hemma ? r[3] : r[4], mot = hemma ? r[4] : r[3];
+      const res = egna > mot ? 'V' : egna < mot ? 'F' : 'O';
+      return `<span class="if-form if-${res}" title="${esc(r[0])}: ${esc(r[1])} – ${esc(r[2])} ${r[3]}-${r[4]}">${res}</span>`;
+    }).join('');
+    // Poangledarna i serien (minst en poang, basta forst)
+    const topp = (g.spelare || []).filter(r => N.has(r[1]) && r[7] >= 1).sort((a, b) => (b[7] - a[7]) || (b[5] - a[5])).slice(0, 3);
+    k.innerHTML = `<h3>${lagLogoHtml(lag)}<span>${esc(lag)}</span></h3>${plac}
+      ${form.length ? `<div class="if-rubrik">Form, senaste ${form.length}</div><div class="if-formrad">${formHtml}</div>` : ''}
+      ${topp.length ? `<div class="if-rubrik">Poängledare i serien</div>${topp.map(r => `<div class="if-topp"><span>${esc(snyggtNamn(r[0]))}</span><span class="num">${r[5]}+${r[6]} = <b>${r[7]}</b></span></div>`).join('')}` : ''}`;
+    k.querySelector('h3').addEventListener('click', () => filtreraPaLag(lag, g.serie));
+    return k;
+  };
+  const lagen = document.createElement('div');
+  lagen.className = 'if-lagen';
+  lagen.append(lagKort(f.hemma, hN), lagKort(f.borta, bN));
+  wrap.appendChild(lagen);
+
+  // Tidigare moten i ar (alla serier i aldersklassen)
+  const moten = grupperIKat.flatMap(x => ((x.matcher && x.matcher.spelade) || [])
+    .filter(r => ((hN.has(r[1]) && bN.has(r[2])) || (bN.has(r[1]) && hN.has(r[2]))) && !arDenna(x, r)).map(r => ({ x, r })))
+    .sort((a, b) => String(b.r[0]).localeCompare(String(a.r[0])));
+  const sek = byggMatchSektion(spelad ? 'Lagens övriga möten i år' : 'Tidigare möten i år', [], true);
+  const lista = sek.querySelector('.match-list');
+  if (moten.length) moten.forEach(({ x, r }) => {
+    const rad = byggMatchRad(r, true, x);
+    if (x.id !== g.id) rad.insertAdjacentHTML('beforeend', `<span class="match-serie">${esc(x.serie)}</span>`);
+    lista.appendChild(rad);
+  });
+  else lista.innerHTML = '<div class="empty-hint">Lagen har inte mötts tidigare den här säsongen.</div>';
+  wrap.appendChild(sek);
+  if (!spelad) {
+    const not = document.createElement('div');
+    not.className = 'empty-hint';
+    not.textContent = 'Händelser, statistik och laguppställning visas här när matchen är spelad.';
+    wrap.appendChild(not);
+  }
+  return wrap;
+}
+
 function hittaGruppForLag(lagNamn, serieNamn){
   // Lagnamn ar bara unika INOM en serie (tva olika lag i tva olika serier kan raka heta
   // samma sak) - darfor letar vi upp EXAKT den serie fokusSerie pekar pa, inte alla serier
@@ -2796,7 +3343,7 @@ function renderLagVy(){
 
   const spelade = ((g.matcher && g.matcher.spelade) || [])
     .filter(m => m[1] === fokusLag || m[2] === fokusLag).slice(0, 3);
-  if (spelade.length > 0) block.appendChild(byggMatchSektion('Senaste resultat', spelade, true));
+  if (spelade.length > 0) block.appendChild(byggMatchSektion('Senaste resultat', spelade, true, g));
 
   el.appendChild(block);
 
@@ -3062,6 +3609,7 @@ function renderAll(){
      #spelare #lag #malvakt
      #serie/<id>          en serie (id fran swehockey-adressen)
      #lag/<id>/<lagnamn>  ett lag i en serie
+     #match/<serie-id>/<datum>/<hemma>/<borta>  en match
      #2025-26/...         annan sasong an den senaste
    ============================================================ */
 var aterstaller = false;
@@ -3071,12 +3619,12 @@ function tillstand(){
     excluded:[...excluded], excludedSeries:[...excludedSeries], excludedKategori:[...excludedKategori],
     excludedDistrikt:[...excludedDistrikt], excludedStatus: excludedStatus ? [...excludedStatus] : null,
     excludedFodelsear:[...excludedFodelsear], excludedPosition:[...excludedPosition],
-    search, sortKey, sortDir };
+    search, sortKey, sortDir, fokusMatch };
 }
 function navNyckel(s){
   // Serie-vyn visar den serie som filtren pekar ut - byte av serie ar ocksa ett nytt steg
   return JSON.stringify([s.season, s.view, s.fokusLag, s.fokusSerie, s.view === 'lagoversikt' ? s.fokusKategori : null,
-    s.view === 'serie' ? [s.excludedSeries, s.excludedKategori] : null]);
+    s.view === 'serie' ? [s.excludedSeries, s.excludedKategori] : null, s.view === 'match' ? s.fokusMatch : null]);
 }
 function adressFor(s){
   const delar = [];
@@ -3090,6 +3638,9 @@ function adressFor(s){
     if (g && s.fokusLag) delar.push('lag', g.id, encodeURIComponent(s.fokusLag));
   } else if (s.view === 'lagoversikt') {
     if (s.fokusLag && s.fokusKategori) delar.push('laget', s.fokusKategori, encodeURIComponent(s.fokusLag));
+  } else if (s.view === 'match') {
+    const f = s.fokusMatch;
+    if (f) delar.push('match', f.serie, f.datum, encodeURIComponent(f.hemma), encodeURIComponent(f.borta));
   } else if (s.view !== 'tabell') {
     delar.push(s.view);
   }
@@ -3127,6 +3678,7 @@ function tillampaAdress(){
   currentSeason = delar[0] && DATAINDEX.sasonger[delar[0]] ? delar.shift() : seasonList()[0];
   if (!VISA_SASONGSVAL) currentSeason = seasonList()[0];
   const [vy, id, lagNamn] = delar;
+  if (vy === 'match' && delar.length >= 5) return oppnaMatch({ serie: delar[1], datum: delar[2], hemma: delar[3], borta: delar[4] });
   if (vy === 'laget' && id && lagNamn) return oppnaLagOversikt(lagNamn, id);
   const g = id && seasonData().grupper.find(x => x.id === id);
   if (vy === 'serie' && g) return filtreraPaSerie(g);
@@ -3140,7 +3692,7 @@ window.addEventListener('popstate', async e => {
   await laddaSasong(s.season);
   aterstaller = true;
   currentSeason = s.season; currentView = s.view;
-  fokusLag = s.fokusLag; fokusSerie = s.fokusSerie; fokusKategori = s.fokusKategori || null;
+  fokusLag = s.fokusLag; fokusSerie = s.fokusSerie; fokusKategori = s.fokusKategori || null; fokusMatch = s.fokusMatch || null;
   excluded = new Set(s.excluded); excludedSeries = new Set(s.excludedSeries);
   excludedKategori = new Set(s.excludedKategori); excludedFodelsear = new Set(s.excludedFodelsear);
   excludedDistrikt = new Set(s.excludedDistrikt || []);
@@ -3216,7 +3768,7 @@ async function hamtaLive(){
     if (sig === liveSignatur) return;
     liveSignatur = sig;
     LIVE = ny;
-    if (['serie', 'lagdetalj', 'kalender', 'lagoversikt'].includes(currentView)) renderTable();
+    if (['serie', 'lagdetalj', 'kalender', 'lagoversikt', 'match'].includes(currentView)) renderTable();
   } catch (e) { /* ingen worker (t.ex. lokalt) - sidan fungerar som vanligt */ }
 }
 function startaLive(){

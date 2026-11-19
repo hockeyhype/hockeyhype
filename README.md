@@ -48,6 +48,7 @@ Sidan speglar swehockey. Spelare eller uppgifter som tas bort där försvinner o
 | `hitta_serier.py` | Letar upp alla ungdomsserier (U14–U16 pojkar och flickor) i distriktens menyer på swehockey |
 | `swehockey.py` | Hämtar och tolkar sidor från stats.swehockey.se |
 | `hockeydata.py` | Läser och skriver filerna i `data/` |
+| `matchdata.py` | Hämtar och tolkar matchsidorna (händelser, statistik, laguppställning) till `data/<säsong>/matcher/<id>.json`. Test: `python verktyg/test_matchdata.py` |
 | `dagligen.py` | Kör hela uppdateringen med kontroller och sammanfattning |
 | `favicon.svg` | Ikonen i webbläsarfliken |
 | `bygg_sidor.py` | Bygger statiska sidor per serie (`/serie/<id>/`) och lag (`/lag/<namn>/`), översikten `/serier/`, `sitemap.xml` och `robots.txt` vid varje publicering |
@@ -65,6 +66,7 @@ Inga extra Python-bibliotek behövs.
 | Matcher | `/ScheduleAndResults/Schedule/{id}` |
 | Spelare och målvakter | `/Teams/Info/PlayersByTeam/{id}` |
 | Födelseår | `/Teams/Info/TeamRoster/{id}` |
+| Matchsida (per match) | `/Game/Events/{match-id}` och `/Game/LineUps/{match-id}` |
 
 ## Lägga till serier, distrikt eller en ny säsong
 
@@ -85,5 +87,6 @@ Kör skriptet igen när nya grupper tillkommer under säsongen (t.ex. DM eller s
 - `spelare`: `[namn, lag, pos, födelseår, GP, G, A, TP, PIM]`
 - `malvakter`: `[namn, lag, födelseår, GPT, GKD, GPI, MIP, GA, SVS, SOG, SVS%, GAA, SO, W, L]`
 - `tabell`: `[placering, lag, GP, W, T, L, målskillnad, poäng]`
-- `matcher.spelade`: `[datum, hemma, borta, hemmamål, bortamål, arena]`, med den senaste först
+- `matcher.spelade`: `[datum, hemma, borta, hemmamål, bortamål, arena, match-id]`, med den senaste först. Match-id:t är swehockeys (länken i spelschemat), `null` om matchen saknar matchsida
+- `data/<säsong>/matcher/<match-id>.json`: en fil per spelad match med händelser, statistik och laguppställning, se `matchdata.py`. `dagligen.py` hämtar nya matcher (högst 400 per körning, nyaste först) och hämtar om matcher tills resultatet är fastställt
 - `matcher.kommande`: `["datum tid", hemma, borta, arena]`, med den närmaste först
