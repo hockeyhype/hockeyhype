@@ -38,6 +38,39 @@ def schema_id(serie, datum, hemma, borta):
     return None
 
 
+def id_i_sida(h, hemma, borta):
+    """Match-id från en sida utan datumkolumn (livevyn, GamesByDate): stycket med båda lagen."""
+    for mt in re.finditer(r"/Game/(?:Events|LineUps|Live)/(\d+)", h):
+        omr = text(h[max(0, mt.start() - 1500):mt.end() + 1500])
+        if hemma in omr and borta in omr:
+            return mt.group(1)
+    return None
+
+
+# Andra ställen där pågående matcher kan synas: seriens livevy (swehockeys egen sida laddar om
+# /StatPage/Live/<serie>/ var 20:e sekund) och dagens GamesByDate.
+def extra_kallor(serier, stamp, hm):
+    sidor = {}
+    for serie in sorted(serier):
+        try:
+            h = hamta(f"https://stats.swehockey.se/StatPage/Live/{serie}/")
+            sidor[f"livevy {serie}"] = h
+            if len(h) > 1000:
+                open(os.path.join(MAPP, f"livevy-{serie}-{stamp}.html"), "w", encoding="utf8").write(h)
+            lankar = sorted(set(re.findall(r"/Game/[A-Za-z]+/(\d+)", h)))
+            logg(f"{hm}   livevy {serie}: {len(h)} tecken, matchlänkar {lankar}")
+        except Exception as e:
+            logg(f"{hm}   livevy {serie} FEL {e}")
+    try:
+        h = hamta(f"https://stats.swehockey.se/GamesByDate/{datetime.date.today().isoformat()}/ByTime/90")
+        sidor["GamesByDate"] = h
+        open(os.path.join(MAPP, f"gamesbydate-{stamp}.html"), "w", encoding="utf8").write(h)
+        logg(f"{hm}   GamesByDate: {len(set(re.findall(r'/Game/Events/(\d+)', h)))} matchlänkar")
+    except Exception as e:
+        logg(f"{hm}   GamesByDate FEL {e}")
+    return sidor
+
+
 idn, lineup_sparad = {}, set()
 kandidater = json.loads(hamta("https://hockeyhype.se/data/live-kandidater.json"))["matcher"]
 idag = datetime.date.today().isoformat()
@@ -59,19 +92,24 @@ while True:
         logg(f"{hm} api/live: " + hamta("https://hockeyhype.se/api/live"))
     except Exception as e:
         logg(f"{hm} api/live FEL {e}")
-    for m in kvall:
+    def aktiv(m):
         start = datetime.datetime.strptime(m["tid"], "%Y-%m-%d %H:%M")
-        if not (start - datetime.timedelta(minutes=60) <= nu <= start + datetime.timedelta(minutes=200)):
-            continue
+        return start - datetime.timedelta(minutes=60) <= nu <= start + datetime.timedelta(minutes=200)
+    aktiva = [m for m in kvall if aktiv(m)]
+    sidor = extra_kallor({m["serie"] for m in aktiva}, stamp, hm) if aktiva else {}
+    for m in aktiva:
         nyckel = (m["serie"], m["hemma"], m["borta"])
         try:
             if nyckel not in idn:
-                gid = schema_id(m["serie"], idag, m["hemma"], m["borta"])
+                kalla, gid = "schemat", schema_id(m["serie"], idag, m["hemma"], m["borta"])
+                for namn in ("GamesByDate", f"livevy {m['serie']}"):
+                    if not gid and namn in sidor:
+                        kalla, gid = namn, id_i_sida(sidor[namn], m["hemma"], m["borta"])
                 if not gid:
-                    logg(f"{hm}   {m['hemma']} - {m['borta']}: inget match-id i schemat än")
+                    logg(f"{hm}   {m['hemma']} - {m['borta']}: inget match-id än (schema, livevy, GamesByDate)")
                     continue
                 idn[nyckel] = gid
-                logg(f"{hm}   {m['hemma']} - {m['borta']}: match-id {gid}")
+                logg(f"{hm}   {m['hemma']} - {m['borta']}: match-id {gid} (från {kalla})")
             gid = idn[nyckel]
             h = hamta(f"https://stats.swehockey.se/Game/Events/{gid}")
             open(os.path.join(MAPP, f"events-{gid}-{stamp}.html"), "w", encoding="utf8").write(h)
