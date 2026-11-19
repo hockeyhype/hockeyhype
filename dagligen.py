@@ -124,7 +124,8 @@ def hamta_matcher(sasong, grupper, data, max_antal):
     """Hämtar matchsidorna (data/<säsong>/matcher/<id>.json) för spelade matcher som saknar fil eller
     inte är fastställda än. Nyaste först, högst max_antal per körning (första gången finns hela
     säsongen att hämta - det sprids då över några körningar). Ej fastställda matcher äldre än två
-    veckor hämtas inte om. Fel stoppar inte körningen."""
+    veckor hämtas inte om. Matcher sparade med en äldre tolkning (matchdata.VERSION) hämtas om.
+    Fel stoppar inte körningen."""
     grans = (datetime.date.today() - datetime.timedelta(days=14)).isoformat()
     att_hamta = []
     for g in grupper:
@@ -132,8 +133,8 @@ def hamta_matcher(sasong, grupper, data, max_antal):
             mid = r[6] if len(r) >= 7 else None
             if not mid:
                 continue
-            fil = os.path.join(matchdata.mapp(sasong, data), f"{mid}.json")
-            if not os.path.exists(fil) or (r[0] >= grans and matchdata.behover(sasong, mid, data)):
+            m = matchdata.las(sasong, mid, data)
+            if not m or m.get("v", 1) < matchdata.VERSION or (r[0] >= grans and not m.get("klar")):
                 att_hamta.append((r[0], mid, g["id"]))
     att_hamta.sort(reverse=True)
     hamtade, fel = 0, []

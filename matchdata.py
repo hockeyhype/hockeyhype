@@ -24,6 +24,9 @@ import html, json, os, re
 
 import swehockey
 
+# Höjs när tolkningen ändras - då hämtas redan sparade matcher om (dagligen.py, hamta_matcher)
+VERSION = 2
+
 
 def _text(s):
     return swehockey.clean(s or "")
@@ -80,7 +83,7 @@ def tolka_handelser(t, id=None):
                 lag[sida]["pptid"] = inom.strip("() ")
 
     senast = re.search(r"Last update:\s*([\d-]+ [\d:]+)", t)
-    res = {"id": str(id) if id else None, "datum": datum, "tid": tid, "arena": arena, "publik": publik,
+    res = {"v": VERSION, "id": str(id) if id else None, "datum": datum, "tid": tid, "arena": arena, "publik": publik,
            "hemma": hemma, "borta": borta, "h": h, "b": b, "perioder": perioder, "status": status,
            "klar": status.lower() == "final score", "senast": senast.group(1) if senast else None, "lag": lag}
 
@@ -111,7 +114,8 @@ def tolka_handelser(t, id=None):
         e = {"period": period, "tid": tid_, "kort": kort}
         mal = re.fullmatch(r"(\d+-\d+)\s*\(([^)]*)\)", typ)
         if mal:
-            huvud = re.split(r"<span", rest, maxsplit=1)[0]
+            # Målskytten står först; efter den kommer målantalet (<span>, saknas ibland) och assisten (<div>)
+            huvud = re.split(r"<span|<div", rest, maxsplit=1)[0]
             assist = [_spelare(a) for a in re.findall(r"<div[^>]*>(.*?)</div>", rest, flags=re.S)]
             malnr = re.search(r'title="[^"]*goals[^"]*"\s*>\s*\((\d+)\)', rest, flags=re.S)
             e.update(typ="mal", stallning=mal.group(1), lage=mal.group(2), spelare=_spelare(huvud),
@@ -246,15 +250,19 @@ def mapp(sasong, data=None):
     return os.path.join(data or os.path.join(os.path.dirname(os.path.abspath(__file__)), "data"), sasong, "matcher")
 
 
+def las(sasong, mid, data=None):
+    """Den sparade matchen, eller None."""
+    fil = os.path.join(mapp(sasong, data), f"{mid}.json")
+    try:
+        return json.load(open(fil, encoding="utf8"))
+    except (OSError, ValueError):
+        return None
+
+
 def behover(sasong, mid, data=None):
     """Ska matchen (om)hämtas? Ja om filen saknas eller resultatet inte är fastställt."""
-    fil = os.path.join(mapp(sasong, data), f"{mid}.json")
-    if not os.path.exists(fil):
-        return True
-    try:
-        return not json.load(open(fil, encoding="utf8")).get("klar")
-    except ValueError:
-        return True
+    m = las(sasong, mid, data)
+    return not m or not m.get("klar")
 
 
 def hamta_och_spara(sasong, mid, serie, data=None):

@@ -694,7 +694,9 @@ tr.favorit-lag-rad td{background:var(--accent-soft);}
 .lu-plats.tom{background:transparent;border:1px dashed var(--border);}
 .lu-pos{font-size:9.5px;font-weight:700;color:var(--text-faint);letter-spacing:.05em;}
 .lu-namn{overflow-wrap:anywhere;line-height:1.25;}
-.lu-pt{position:absolute;top:5px;right:6px;font-size:10px;font-weight:700;color:var(--accent);}
+.lu-extra{position:absolute;top:4px;right:5px;display:flex;gap:4px;align-items:center;}
+.lu-pt{font-size:10px;font-weight:700;color:var(--accent);}
+.lu-utv{font-size:9.5px;font-weight:700;padding:0 4px;border-radius:3px;background:var(--u18-soft);color:var(--u18);}
 .lu-tranare{padding-top:8px;border-top:1px solid var(--border);font-size:12px;color:var(--text-muted);}
 .lu-domare{grid-column:1 / -1;font-size:12px;color:var(--text-muted);margin-bottom:6px;}
 .lu-not{grid-column:1 / -1;}
@@ -2964,7 +2966,7 @@ const UTV_ORSAK = {
   'Interference':'Obstruktion', 'Elbowing':'Armbåge', 'Kneeing':'Knätackling', 'High sticking':'Hög klubba',
   'High-sticking':'Hög klubba', 'Charging':'Charging', 'Checking from behind':'Tackling bakifrån',
   'Checking to the head and neck area':'Tackling mot huvud/nacke', 'Head contact':'Huvudtackling',
-  'Too many men':'För många spelare', 'Too many players on ice':'För många spelare på isen', 'Unsportsmanlike conduct':'Osportsligt uppträdande',
+  'Too many men':'För många spelare', 'Too many players on the ice':'För många spelare på isen', 'Too many players on ice':'För många spelare på isen', 'Unsportsmanlike conduct':'Osportsligt uppträdande',
   'Delaying the game':'Fördröjning', 'Delay of game':'Fördröjning', 'Diving':'Filmning', 'Embellishment':'Filmning',
   'Misconduct':'Disciplinstraff', 'Game misconduct':'Matchstraff', 'Match penalty':'Matchstraff', 'Abuse of officials':'Ovårdat uppträdande',
   'Spearing':'Stickning', 'Butt-ending':'Klubbända', 'Clipping':'Clipping', 'Leg checking':'Bentackling', 'Kicking':'Sparkning',
@@ -3195,16 +3197,22 @@ function byggMatchStatistik(d, f){
 function byggUppstallning(d, f){
   const wrap = document.createElement('div');
   wrap.className = 'mv-uppstallning';
-  // Mal och assist i matchen per spelare (lag + nummer)
-  const poang = {};
+  // Mal och assist (och utvisningsminuter) i matchen per spelare (lag + nummer)
+  const poang = {}, utvMin = {};
+  (d.handelser || []).filter(e => e.typ === 'utv' && e.spelare).forEach(e => {
+    const k = e.lag + '|' + e.spelare.nr;
+    utvMin[k] = (utvMin[k] || 0) + (e.min || 0);
+  });
   (d.handelser || []).filter(e => e.typ === 'mal').forEach(e => {
     const plus = (p, i) => { if (!p) return; const k = e.lag + '|' + p.nr; (poang[k] = poang[k] || [0, 0])[i]++; };
     plus(e.spelare, 0); (e.assist || []).forEach(a => plus(a, 1));
   });
   const chip = (sida, p, pos) => {
     if (!p) return '<span class="lu-plats tom"></span>';
-    const pt = poang[sida + '|' + p.nr];
-    return `<span class="lu-plats"><span class="lu-pos">${pos || ''}</span><span class="lu-namn">${spelareHtml(p)}</span>${pt ? `<span class="lu-pt" title="${pt[0]} mål, ${pt[1]} assist">${pt[0]}+${pt[1]}</span>` : ''}</span>`;
+    const pt = poang[sida + '|' + p.nr], um = utvMin[sida + '|' + p.nr];
+    const extra = (pt ? `<span class="lu-pt" title="${pt[0]} mål, ${pt[1]} assist">${pt[0]}+${pt[1]}</span>` : '')
+      + (um ? `<span class="lu-utv" title="${um} utvisningsminuter">${um} min</span>` : '');
+    return `<span class="lu-plats"><span class="lu-pos">${pos || ''}</span><span class="lu-namn">${spelareHtml(p)}</span>${extra ? `<span class="lu-extra">${extra}</span>` : ''}</span>`;
   };
   const KEDJA = { '1st Line': '1:a femman', '2nd Line': '2:a femman', '3rd Line': '3:e femman', '4th Line': '4:e femman', '5th Line': '5:e femman' };
   ['h', 'b'].forEach(sida => {
@@ -3244,7 +3252,7 @@ function byggUppstallning(d, f){
   }
   const not = document.createElement('div');
   not.className = 'empty-hint lu-not';
-  not.textContent = 'Siffran efter namnet är mål+assist i matchen.';
+  not.textContent = 'Vid namnet: mål+assist och utvisningsminuter i matchen.';
   wrap.appendChild(not);
   return wrap;
 }

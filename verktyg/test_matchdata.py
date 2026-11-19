@@ -49,4 +49,10 @@ assert [k["namn"] for k in UB["kedjor"]] == ["1st Line", "2nd Line", "3rd Line"]
 assert [(p["pos"], p["nr"]) for p in UB["kedjor"][0]["spelare"]] == [("LD", 41), ("RD", 17), ("LW", 77), ("C", 29), ("RW", 18)]
 assert H["farg"] == "Black" and B["farg"] == "Blue"
 assert m["domare"] == ["Domare Ett"] and m["linjemän"] == ["Linje Ett", "Linje Två"]
+# Mål utan målantal efter skytten (vissa matcher): assisten får inte hamna i skyttens namn
+rad = ('<h2>A - B</h2><h2>Actions</h2><table><tr><th><h3>1st period</h3></th></tr><tr><td>01:57</td><td>0-1 (EQ)</td>'
+       '<td>BBB</td><td>21. Efternamn21, Förnamn<div style="padding-left: 10px;">14. Efternamn14, Förnamn</div>'
+       '<td class="tdOdd" /></td></tr></table>')
+e = matchdata.tolka_handelser(rad)["handelser"][0]
+assert e["spelare"] == {"nr": 21, "namn": "Efternamn21, Förnamn"} and [a["nr"] for a in e["assist"]] == [14], e
 print("alla tester ok")
