@@ -206,16 +206,29 @@ export function tolkaHelMatch(eventsHtml, lineupHtml, id = null, serie = null) {
   return m;
 }
 
-// Seriens liveöversikt (/StatPage/Live/<serie>/): dagens matcher som inte är klara, med match-id
-// redan före nedsläpp. [{id, hemma, borta, text, status}] - text är tiden eller ställningen.
+// Seriens liveöversikt (/StatPage/Live/<serie>/): dagens matcher, med match-id redan före nedsläpp
+// (för matcher som rapporteras live - andra står med utan länk). Varje match är ett eget block.
+// [{id, hemma, borta, text, perioder, status, klar}] - text är tiden före match, sedan ställningen.
 export function tolkaLivevy(html) {
   const ut = [];
-  const sedda = new Set();
-  const re = /<div class="h2 font-weight-bold">(.*?)<\/div>[\s\S]*?\/Game\/Events\/(\d+)[\s\S]*?>([^<]*)<\/a>[\s\S]*?<div class="h2 font-weight-bold">(.*?)<\/div>[\s\S]*?<div class="col-12 m-0 text-(?:center|left)">([\s\S]*?)<\/div>/g;
-  for (const m of html.matchAll(re)) {
-    if (sedda.has(m[2])) continue;
-    sedda.add(m[2]);
-    ut.push({ id: m[2], hemma: rensa(m[1]), borta: rensa(m[4]), text: rensa(m[3]), status: rensa(m[5]) });
-  }
+  const delar = html.split('<div class="row d-flex d-sm-none">');
+  let avsnitt = '';
+  delar.forEach((d, i) => {
+    if (i > 0) {
+      const lag = [...d.matchAll(/<div class="h2 font-weight-bold">(.*?)<\/div>/gs)].map(m => rensa(m[1]));
+      const id = (d.match(/\/Game\/Events\/(\d+)/) || [])[1] || null;
+      const res = d.match(/class="col-2\s+p-1 text-center Result">([\s\S]*?)<div class="col-5/);
+      const rader = res ? [...res[1].matchAll(/<div class="col-12 p-0 m-0 text-center">([\s\S]*?)<\/div>/g)].map(m => rensa(m[1])) : [];
+      const status = rensa((d.match(/TodaysGamesGame"><div class="col-12 m-0 text-center">([\s\S]*?)<\/div>/) || [])[1]);
+      if (lag.length >= 2) {
+        const per = rader.find(r => /^\(.*\)$/.test(r));
+        ut.push({ id, hemma: lag[0], borta: lag[1], text: rader[0] || '', perioder: per ? per.slice(1, -1).trim() : '',
+          status, klar: /final score/i.test(avsnitt) || /^final score/i.test(status) });
+      }
+    }
+    // Rubriken (Upcoming / In Progress, Final Score) gäller blocken efter den
+    const rub = [...d.matchAll(/pageSubTitle">([^<]*)</g)];
+    if (rub.length) avsnitt = rub[rub.length - 1][1].trim();
+  });
   return ut;
 }

@@ -3,10 +3,11 @@
 // Varannan minut (cron):
 //   1. Läser hockeyhype.se/data/live-kandidater.json (dagens och närmaste dagarnas matcher, skrivs av
 //      dagligen.py) och väljer matcherna som pågår eller nyss borde ha börjat/slutat.
-//   2. Saknas swehockeys match-id läses seriens liveöversikt (/StatPage/Live/<serie>/), som listar
-//      dagens matcher med id redan före nedsläpp. Står matchen inte där (t.ex. redan klar) läses
-//      spelschemat i stället.
-//   3. Läser matchsidan (/Game/Events/<id>): ställning, perioder och status.
+//   2. Läser seriens liveöversikt (/StatPage/Live/<serie>/) - ett anrop per serie. Den listar dagens
+//      matcher med match-id redan före nedsläpp, och under match ställning, perioder och status.
+//      Klara matcher står kvar under "Final Score" i flera timmar.
+//   3. Matcher som inte står där (rapporteras inte live) men borde ha börjat: id från spelschemat och
+//      ställningen från matchsidan (/Game/Events/<id>).
 //   4. Sparar läget i KV ("live") - bara när något ändrats - och väcker GitHub-uppdateringen
 //      (repository_dispatch "matchklar") för serier där en match just blivit klar.
 //
@@ -22,7 +23,6 @@ export { tolkaHelMatch, tolkaLivevy };
 
 const UA = 'Mozilla/5.0 (compatible; hockeyhype-live; +https://hockeyhype.se/om.html)';
 const FORE = 90;             // minuter före nedsläpp vi börjar titta (id:t behövs för laguppställningen)
-const FORE_MATCHSIDA = 5;    // ... och minuter före nedsläpp vi börjar läsa matchsidan
 const EFTER = 4 * 60;        // minuter efter nedsläpp vi slutar (om matchen inte blivit klar)
 const MAX_ANROP = 40;        // gratisplanen tillåter 50 anrop till andra sajter per körning
 const BEHALL_TIMMAR = 18;    // klara matcher ligger kvar i läget så här länge
@@ -121,55 +121,68 @@ export async function bevaka(env, nu = new Date(), hamtaFn = hamta) {
   let anrop = 0;
   const klaraSerier = new Set();
 
-  // 1) Match-id: läs liveöversikten för serier där vi saknar id, och spelschemat för matcher som
-  //    inte står där men borde ha börjat (läses bara var tionde minut - schemat är stort)
-  const utanId = () => aktiva.filter(m => !(lage.matcher[nyckel(m)] || {}).id);
-  const sattId = (m, id) => { lage.matcher[nyckel(m)] = { ...(lage.matcher[nyckel(m)] || {}), id, serie: m.serie,
-    tid: m.tid, hemma: m.hemma, borta: m.borta }; };
   const tioMinuter = Number(nuSv.slice(15, 16)) <= 1; // sista minutsiffran 0 eller 1
-  for (const serie of [...new Set(utanId().map(m => m.serie))]) {
+  const uppdatera = (m, t) => {
+    // t: {id, h, b, perioder, status, klar, senast?} - sparar läget och noterar matcher som just blev klara
+    const k = lage.matcher[nyckel(m)] || {};
+    const ny = { id: t.id || k.id, serie: m.serie, tid: m.tid, hemma: m.hemma, borta: m.borta };
+    if (t.h != null) {
+      Object.assign(ny, { h: t.h, b: t.b, perioder: t.perioder, period: t.perioder ? t.perioder.split(',').length : 0,
+        status: t.status, klar: t.klar, senast: t.senast || null });
+      if (t.klar && !k.klar) klaraSerier.add(m.serie);
+      ny.sedd = k.klar === t.klar && k.h === t.h && k.b === t.b ? k.sedd : nuSv;
+    }
+    lage.matcher[nyckel(m)] = ny;
+  };
+
+  // 1) Seriernas liveöversikter: id (redan före nedsläpp), ställning, perioder och status för alla
+  //    seriens matcher i ett anrop. Serier med bara matcher utan satt tid läses var tionde minut.
+  const sedda = new Set();
+  for (const serie of [...new Set(aktiva.map(m => m.serie))]) {
     if (anrop >= MAX_ANROP) break;
     const baraUtanTid = aktiva.filter(m => m.serie === serie).every(m => m.tid.endsWith('00:00'));
     if (baraUtanTid && !tioMinuter) continue;
     try {
       anrop++;
       const rader = tolkaLivevy(await hamtaFn(`${SWEHOCKEY}/StatPage/Live/${serie}/`));
-      utanId().filter(m => m.serie === serie).forEach(m => {
-        const r = rader.find(r => r.hemma === m.hemma && r.borta === m.borta);
-        if (r) sattId(m, r.id);
+      aktiva.filter(m => m.serie === serie).forEach(m => {
+        const r = rader.find(r => r.id && r.hemma === m.hemma && r.borta === m.borta);
+        if (!r) return;
+        sedda.add(nyckel(m));
+        const st = r.text.match(/^(\d+)\s*-\s*(\d+)$/);
+        uppdatera(m, { id: r.id, h: st ? Number(st[1]) : null, b: st ? Number(st[2]) : null, perioder: r.perioder,
+          status: r.status.replace(/\s*\(\d+:\d+\)\s*$/, ''), klar: r.klar });
       });
     } catch (e) {
       console.log('livevy', serie, e.message);
     }
   }
-  const tillSchema = utanId().filter(m => m.tid.endsWith('00:00') || nuMin >= minuter(m.tid));
-  for (const serie of tioMinuter ? [...new Set(tillSchema.map(m => m.serie))] : []) {
+
+  // 2) Matcher som inte står i liveöversikten men borde ha börjat: id från spelschemat (var tionde
+  //    minut - schemat är stort), sedan matchsidan
+  const borjat = m => m.tid.endsWith('00:00') || nuMin >= minuter(m.tid);
+  const ejSedda = aktiva.filter(m => !sedda.has(nyckel(m)) && borjat(m));
+  const utanId = ejSedda.filter(m => !(lage.matcher[nyckel(m)] || {}).id);
+  for (const serie of tioMinuter ? [...new Set(utanId.map(m => m.serie))] : []) {
     if (anrop >= MAX_ANROP) break;
     try {
       anrop++;
       const rader = tolkaSchema(await hamtaFn(`${SWEHOCKEY}/ScheduleAndResults/Schedule/${serie}`));
-      tillSchema.filter(m => m.serie === serie).forEach(m => {
+      utanId.filter(m => m.serie === serie).forEach(m => {
         const r = rader.find(r => r.datum === m.tid.slice(0, 10) && r.hemma === m.hemma && r.borta === m.borta);
-        if (r) sattId(m, r.id);
+        if (r) uppdatera(m, { id: r.id });
       });
     } catch (e) {
       console.log('schema', serie, e.message);
     }
   }
-
-  // 2) Matchsidorna
-  for (const m of aktiva) {
+  for (const m of ejSedda) {
     const k = lage.matcher[nyckel(m)];
     if (!k || !k.id || anrop >= MAX_ANROP) continue;
-    if (!m.tid.endsWith('00:00') && nuMin < minuter(m.tid) - FORE_MATCHSIDA) continue;
     try {
       anrop++;
       const t = tolkaMatch(await hamtaFn(`${SWEHOCKEY}/Game/Events/${k.id}`));
-      if (!t || t.h === null) continue; // matchen inte igång än
-      const ny = { id: k.id, serie: m.serie, tid: m.tid, hemma: m.hemma, borta: m.borta,
-                   h: t.h, b: t.b, perioder: t.perioder, status: t.status, klar: t.klar, senast: t.senast };
-      if (t.klar && !k.klar) klaraSerier.add(m.serie);
-      lage.matcher[nyckel(m)] = { ...ny, sedd: k.klar === t.klar && k.h === t.h && k.b === t.b ? k.sedd : nuSv };
+      if (t && t.h !== null) uppdatera(m, { ...t, id: k.id });
     } catch (e) {
       console.log('match', k.id, e.message);
     }

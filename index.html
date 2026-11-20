@@ -3838,10 +3838,13 @@ function liveStatusText(e){
   if (e.klar) return 'Slut';
   const st = String(e.status || '').toLowerCase();
   const nr = (st.match(/(\d)/) || [])[1];
+  if (/finished/.test(st)) return 'Slut';
   if (/overtime|förläng/.test(st)) return 'Förl.';
-  if (/shoot|penalty|straff/.test(st)) return 'Straffar';
-  if (/intermission|pause|paus/.test(st)) return 'Paus';
+  if (/shoot|shots|penalty|straff|gws/.test(st)) return 'Straffar';
+  if (/intermission|pause|paus|waiting|ended/.test(st)) return 'Paus';
   if (nr && /period/.test(st)) return 'P' + nr;
+  // Liveöversikten skriver t.ex. "Powerplay (5 on 4) for NOR" - perioden räknas då från periodresultaten
+  if (e.period) return 'P' + e.period;
   return 'Live';
 }
 function liveStatusHtml(e){

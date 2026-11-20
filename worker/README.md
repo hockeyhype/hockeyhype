@@ -7,11 +7,13 @@ Visar ställningen i pågående matcher på hockeyhype.se, 1–3 minuter efter s
 1. `dagligen.py` skriver `data/live-kandidater.json`: dagens och de två närmaste dagarnas matcher.
 2. Workern körs varannan minut (cron). Den väljer matcher från 90 minuter före nedsläpp till
    4 timmar efter. Matcher utan satt tid (00:00) bevakas hela dagen från kl 08.
-3. Saknas swehockeys match-id läses seriens liveöversikt (`/StatPage/Live/<serie>/`, några kB). Den
-   listar dagens matcher med id redan före nedsläpp (sett 45 minuter före). Står matchen inte där
-   läses spelschemat i stället, var tionde minut, för matcher som borde ha börjat.
-4. Matchsidan (`stats.swehockey.se/Game/Events/<id>`) ger ställning, perioder och status. Den läses
-   från 5 minuter före nedsläpp.
+3. För varje serie med aktiva matcher läses seriens liveöversikt (`/StatPage/Live/<serie>/`, några kB).
+   Ett anrop ger alla seriens matcher: match-id redan före nedsläpp (sett 20-90 minuter före),
+   under match ställning, periodresultat och status, och "Final Score" när resultatet fastställts.
+   Klara matcher står kvar i flera timmar. Matchlogg 2026-11-19: 672 av 677 jämförelser med
+   matchsidan stämde exakt, resten skilde några sekunder.
+4. Matcher som inte står där (rapporteras inte live) men borde ha börjat: id från spelschemat,
+   var tionde minut, och ställningen från matchsidan (`stats.swehockey.se/Game/Events/<id>`).
 5. Läget sparas i KV-nyckeln `live`, men bara när något ändrats (gratisplanen tillåter 1 000
    skrivningar per dygn).
 6. När en match blir klar väcks GitHub-flödet (`repository_dispatch`, typ `matchklar`). Det läser om

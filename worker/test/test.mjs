@@ -72,33 +72,45 @@ assert.equal(kv.get('live'), fore);
 await bevaka(env, kl('2026-09-16T16:00:00Z'), hamtaFn);
 assert.equal(Object.keys(JSON.parse(kv.get('live')).matcher).length, 0);
 
-// --- liveöversikten: id redan före nedsläpp ---
+// --- liveöversikten ---
 assert.deepEqual(tolkaLivevy(fil('livevy.html')),
-  [{ id: '1183657', hemma: 'IFK Täby HC', borta: 'Solna SK', text: '18:00', status: 'Waiting for 1st period' }]);
+  [{ id: '1183657', hemma: 'IFK Täby HC', borta: 'Solna SK', text: '18:00', perioder: '', status: 'Waiting for 1st period', klar: false }]);
+assert.deepEqual(tolkaLivevy(fil('livevy-klar.html')),
+  [{ id: '1183657', hemma: 'IFK Täby HC', borta: 'Solna SK', text: '9 - 0', perioder: '5-0, 4-0', status: 'Final Score', klar: true }]);
+// En match utan länk (rapporteras inte live) får inte blandas ihop med nästa match
+assert.deepEqual(tolkaLivevy(fil('livevy-utan-lank.html')).map(r => [r.id, r.hemma, r.borta, r.text]),
+  [[null, 'Väsby IK HK', 'Spånga IS IK', '19:30'], ['1126792', 'Gimo IF HC/Östhammar SK', 'Norrtälje IK', '0 - 0']]);
 
 {
   const kv2 = new Map();
   const env2 = { LIVE: { get: async k => kv2.has(k) ? JSON.parse(kv2.get(k)) : null, put: async (k, v) => kv2.set(k, v) } };
   const lista = JSON.stringify({ matcher: [{ serie: '22218', tid: '2026-11-19 18:00', hemma: 'IFK Täby HC', borta: 'Solna SK' }] });
+  let vy = 'livevy.html';
   const url2 = [];
   const f2 = async url => {
     url2.push(url);
     if (url.endsWith('live-kandidater.json')) return lista;
-    if (url.includes('/StatPage/Live/22218/')) return fil('livevy.html');
-    if (url.includes('/Game/Events/1183657')) return fil('match-live.html');
+    if (url.includes('/StatPage/Live/22218/')) return fil(vy);
     throw new Error('oväntad url ' + url);
   };
-  // 16:45 svensk tid: 75 min före - id från liveöversikten, matchsidan läses inte än
+  const nyck = '22218|2026-11-19|IFK Täby HC|Solna SK';
+  // 16:45 svensk tid: 75 min före - id från liveöversikten, ingen ställning än
   await bevaka(env2, kl('2026-11-19T15:45:00Z'), f2);
-  let l = JSON.parse(kv2.get('live'));
-  const k = l.matcher['22218|2026-11-19|IFK Täby HC|Solna SK'];
+  let k = JSON.parse(kv2.get('live')).matcher[nyck];
   assert.equal(k.id, '1183657'); assert.equal(k.h, undefined);
-  assert.ok(!url2.some(u => u.includes('/Schedule/') || u.includes('/Game/')), 'varken schema eller matchsida före match');
-  // 18:10: id känt - bara matchsidan
-  url2.length = 0;
-  await bevaka(env2, kl('2026-11-19T17:10:00Z'), f2);
-  assert.deepEqual(url2.slice(1), ['https://stats.swehockey.se/Game/Events/1183657']);
-  assert.equal(JSON.parse(kv2.get('live')).matcher['22218|2026-11-19|IFK Täby HC|Solna SK'].h, 2);
+  assert.deepEqual(url2.slice(1), ['https://stats.swehockey.se/StatPage/Live/22218/'], 'bara liveöversikten');
+  // 18:18: ställningen från liveöversikten - ingen matchsida behövs
+  vy = 'livevy-pagar.html'; url2.length = 0;
+  let r2 = await bevaka(env2, kl('2026-11-19T17:18:00Z'), f2);
+  k = JSON.parse(kv2.get('live')).matcher[nyck];
+  assert.deepEqual([k.h, k.b, k.perioder, k.period, k.status, k.klar], [3, 0, '3-0', 1, '1st period', false]);
+  assert.equal(url2.length, 2); assert.equal(r2.anrop, 1);
+  // 21:16: Final Score - klar, GitHub ska väckas för serien
+  vy = 'livevy-klar.html';
+  r2 = await bevaka(env2, kl('2026-11-19T20:16:00Z'), f2);
+  k = JSON.parse(kv2.get('live')).matcher[nyck];
+  assert.deepEqual([k.h, k.b, k.period, k.klar], [9, 0, 2, true]);
+  assert.deepEqual(r2.klara, ['22218']);
 }
 
 // --- hela matchsidan (samma tolkning som matchdata.py) ---
