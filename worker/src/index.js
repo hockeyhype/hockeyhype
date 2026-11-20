@@ -9,7 +9,8 @@
 //   3. Matcher som inte står där (rapporteras inte live) men borde ha börjat: id från spelschemat och
 //      ställningen från matchsidan (/Game/Events/<id>).
 //   4. Sparar läget i KV ("live") - bara när något ändrats - och väcker GitHub-uppdateringen
-//      (repository_dispatch "matchklar") för serier där en match just blivit klar.
+//      (repository_dispatch "matchklar") för serier där en match just slutat ("Game Finished") och
+//      igen när resultatet fastställts ("Final Score").
 //
 // GET /api/live svarar med läget som JSON. Sidan hämtar det varje minut när matcher pågår.
 // GET /api/match/<id> svarar med hela matchen (händelser, statistik, laguppställning) i samma format
@@ -129,7 +130,11 @@ export async function bevaka(env, nu = new Date(), hamtaFn = hamta) {
     if (t.h != null) {
       Object.assign(ny, { h: t.h, b: t.b, perioder: t.perioder, period: t.perioder ? t.perioder.split(',').length : 0,
         status: t.status, klar: t.klar, senast: t.senast || null });
-      if (t.klar && !k.klar) klaraSerier.add(m.serie);
+      // GitHub väcks vid slutsignalen ("Game Finished") - resultatet står då redan i spelschemat - och
+      // igen när sekretariatet fastställt det ("Final Score"), ifall något rättats
+      const slut = t.klar || /game finished/i.test(t.status || '');
+      if ((slut && !k.slut) || (t.klar && !k.klar)) klaraSerier.add(m.serie);
+      ny.slut = slut || !!k.slut;
       ny.sedd = k.klar === t.klar && k.h === t.h && k.b === t.b ? k.sedd : nuSv;
     }
     lage.matcher[nyckel(m)] = ny;

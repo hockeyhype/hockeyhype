@@ -105,7 +105,16 @@ assert.deepEqual(tolkaLivevy(fil('livevy-utan-lank.html')).map(r => [r.id, r.hem
   k = JSON.parse(kv2.get('live')).matcher[nyck];
   assert.deepEqual([k.h, k.b, k.perioder, k.period, k.status, k.klar], [3, 0, '3-0', 1, '1st period', false]);
   assert.equal(url2.length, 2); assert.equal(r2.anrop, 1);
-  // 21:16: Final Score - klar, GitHub ska väckas för serien
+  // 19:19: Game Finished - GitHub väcks redan nu (resultatet står i schemat), men matchen är inte klar
+  const finished = fil('livevy-pagar.html').replace(/>\s*3 - 0\s*</g, '>9 - 0<').replace(/1st period\s*\(08:39\)/g, 'Game Finished');
+  const f3 = async url => url.includes('/StatPage/Live/') ? finished : f2(url);
+  r2 = await bevaka(env2, kl('2026-11-19T18:19:00Z'), f3);
+  k = JSON.parse(kv2.get('live')).matcher[nyck];
+  assert.deepEqual([k.h, k.status, k.klar, k.slut], [9, 'Game Finished', false, true]);
+  assert.deepEqual(r2.klara, ['22218']);
+  r2 = await bevaka(env2, kl('2026-11-19T18:21:00Z'), f3);
+  assert.deepEqual(r2.klara, [], 'inte igen förrän resultatet fastställts');
+  // 21:16: Final Score - klar, GitHub väcks en gång till
   vy = 'livevy-klar.html';
   r2 = await bevaka(env2, kl('2026-11-19T20:16:00Z'), f2);
   k = JSON.parse(kv2.get('live')).matcher[nyck];

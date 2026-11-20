@@ -16,8 +16,10 @@ Visar ställningen i pågående matcher på hockeyhype.se, 1–3 minuter efter s
    var tionde minut, och ställningen från matchsidan (`stats.swehockey.se/Game/Events/<id>`).
 5. Läget sparas i KV-nyckeln `live`, men bara när något ändrats (gratisplanen tillåter 1 000
    skrivningar per dygn).
-6. När en match blir klar väcks GitHub-flödet (`repository_dispatch`, typ `matchklar`). Det läser om
-   serien, så att resultat, tabell och poängliga uppdateras på vanligt sätt.
+6. När en match slutat ("Game Finished") väcks GitHub-flödet (`repository_dispatch`, typ `matchklar`).
+   Det läser om serien, så att resultat, tabell och poängliga uppdateras på vanligt sätt - resultatet
+   står i spelschemat redan då. Flödet väcks en gång till när sekretariatet fastställt resultatet
+   ("Final Score", kan dröja om domaren inte nås), ifall något rättats.
 7. `GET hockeyhype.se/api/match/<id>` svarar med hela matchen: händelser, statistik och
    laguppställning, i samma format som `data/<säsong>/matcher/<id>.json`. Tolkningen i
    `src/matchdata.js` är en kopia av `matchdata.py` - ändra båda. Bara matcher i läget, cachat
