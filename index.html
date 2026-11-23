@@ -3073,11 +3073,17 @@ function renderMatchVy(){
   const tid = spelad ? (d && d.tid) : String(datumTid).split(' ')[1];
   const arena = spelad ? (rad[5] || (d && d.arena)) : rad[3];
   const datumText = `${kalenderDag(f.datum).replace(/<[^>]+>/g, '')}${tid && tid !== '00:00' ? ' · ' + tid : ''}`;
-  const hm = spelad ? rad[3] : live ? live.h : null;
-  const bm = spelad ? rad[4] : live ? live.b : null;
+  // Under match: ställningen från matchsidan (samma källa som händelserna, hämtas varje minut) om den
+  // finns - workerns läge (/api/live) kan ligga några minuter efter och visa 0-0 fast målet syns nedanför
+  const liveVisa = !spelad && d && d.h != null
+    ? { h: d.h, b: d.b, status: d.status, klar: d.klar, period: (d.perioder || []).length,
+        perioder: (d.perioder || []).map(p => p.join('-')).join(', ') }
+    : live;
+  const hm = spelad ? rad[3] : liveVisa ? liveVisa.h : null;
+  const bm = spelad ? rad[4] : liveVisa ? liveVisa.b : null;
   let statusHtml = '';
   if (spelad) statusHtml = `<span class="mv-status">${d && !d.klar && d.status ? 'Slut · ej fastställt' : 'Slut'}</span>`;
-  else if (live) statusHtml = liveStatusHtml(live);
+  else if (liveVisa) statusHtml = liveStatusHtml(liveVisa);
   else statusHtml = `<span class="mv-status">${tid && tid !== '00:00' ? 'Nedsläpp ' + tid : 'Tid ej satt'}</span>`;
   const perioder = d && d.perioder.length ? d.perioder.map(p => p.join('-')).join(', ') : live && live.perioder ? live.perioder : '';
 
@@ -3089,7 +3095,7 @@ function renderMatchVy(){
     <div class="mv-tavla">
       <button type="button" class="mv-lag" data-lag="h">${lagLogoHtml(f.hemma)}<span>${esc(f.hemma)}</span></button>
       <div class="mv-mitt">
-        <div class="mv-res${live && !live.klar ? ' live' : ''}">${hm != null ? `${hm}<span>–</span>${bm}` : '<span class="mv-vs">vs</span>'}</div>
+        <div class="mv-res${liveVisa && !liveVisa.klar && !/finished/i.test(liveVisa.status || '') ? ' live' : ''}">${hm != null ? `${hm}<span>–</span>${bm}` : '<span class="mv-vs">vs</span>'}</div>
         ${statusHtml}
         ${perioder ? `<div class="mv-perioder">(${esc(perioder)})</div>` : ''}
       </div>
