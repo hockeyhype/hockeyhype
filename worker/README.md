@@ -1,11 +1,11 @@
 # hockeyhype-live (Cloudflare Worker)
 
-Visar ställningen i pågående matcher på hockeyhype.se, 1–3 minuter efter swehockey.
+Visar ställningen i pågående matcher på hockeyhype.se, cirka 1 minut efter swehockey (högst 2).
 
 ## Så fungerar det
 
 1. `dagligen.py` skriver `data/live-kandidater.json`: dagens och de två närmaste dagarnas matcher.
-2. Workern körs varannan minut (cron). Den väljer matcher från 90 minuter före nedsläpp till
+2. Workern körs varje minut (cron). Den väljer matcher från 90 minuter före nedsläpp till
    4 timmar efter. Matcher utan satt tid (00:00) bevakas hela dagen från kl 08.
 3. För varje serie med aktiva matcher läses seriens liveöversikt (`/StatPage/Live/<serie>/`, några kB).
    Ett anrop ger alla seriens matcher: match-id redan före nedsläpp (sett 20-90 minuter före),
@@ -14,8 +14,9 @@ Visar ställningen i pågående matcher på hockeyhype.se, 1–3 minuter efter s
    matchsidan stämde exakt, resten skilde några sekunder.
 4. Matcher som inte står där (rapporteras inte live) men borde ha börjat: id från spelschemat,
    var tionde minut, och ställningen från matchsidan (`stats.swehockey.se/Game/Events/<id>`).
-5. Läget sparas i KV-nyckeln `live`, men bara när något ändrats (gratisplanen tillåter 1 000
-   skrivningar per dygn).
+5. Läget sparas i KV-nyckeln `live`, men bara när något som syns på sidan ändrats: id, ställning,
+   perioder, slut/klar och slags status (spel, paus, förlängning, straffar). Detaljer som
+   "Powerplay (5 on 4) for X" räknas inte. Gratisplanen tillåter 1 000 skrivningar per dygn.
 6. När en match slutat ("Game Finished") väcks GitHub-flödet (`repository_dispatch`, typ `matchklar`).
    Det läser om serien, så att resultat, tabell och poängliga uppdateras på vanligt sätt - resultatet
    står i spelschemat redan då. Flödet väcks en gång till när sekretariatet fastställt resultatet
@@ -26,7 +27,7 @@ Visar ställningen i pågående matcher på hockeyhype.se, 1–3 minuter efter s
    60 sekunder. Sidan använder den för matcher som inte är spelade än: laguppställningen före match
    och händelserna under match.
 8. `GET hockeyhype.se/api/live` svarar med läget. Matcher med id men utan ställning är med, så att
-   sidan vet vilket id den ska fråga efter. Sidan frågar varje minut, men bara när en match
+   sidan vet vilket id den ska fråga efter. Sidan frågar var 30:e sekund, men bara när en match
    pågår och fliken syns.
 
 Faller workern bort fungerar allt som förut: GitHub-flödets matchbevakning var 10:e minut ligger kvar.
@@ -62,5 +63,5 @@ Testfilerna i `test/fixtures/` är swehockey-sidor där spelarnamnen tagits bort
 | Anrop till workern | 100 000/dygn | /api/live från besökare under pågående matcher |
 | Cron | 5 per konto | 1 |
 | Anrop till andra sajter per körning | 50 | Högst 40 (MAX_ANROP) |
-| KV-skrivningar | 1 000/dygn | Högst 720 (en per runda, bara vid ändring) |
+| KV-skrivningar | 1 000/dygn | En per synlig ändring - uppspelning av 2026-11-19 kl 18:18–21:45 (21 matcher) gav 65 |
 | Processortid | 10 ms per körning | Tolkningen av en sida tar några ms |

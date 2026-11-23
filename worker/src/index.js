@@ -1,6 +1,6 @@
 // hockeyhype-live: Cloudflare Worker som bevakar pågående matcher.
 //
-// Varannan minut (cron):
+// Varje minut (cron):
 //   1. Läser hockeyhype.se/data/live-kandidater.json (dagens och närmaste dagarnas matcher, skrivs av
 //      dagligen.py) och väljer matcherna som pågår eller nyss borde ha börjat/slutat.
 //   2. Läser seriens liveöversikt (/StatPage/Live/<serie>/) - ett anrop per serie. Den listar dagens
@@ -95,10 +95,23 @@ async function hamta(url) {
 
 const nyckel = m => `${m.serie}|${m.tid.slice(0, 10)}|${m.hemma}|${m.borta}`;
 
+// Det som syns på sidan: KV skrivs bara när det ändras (gratisplanen tillåter 1 000 skrivningar per
+// dygn och workern körs varje minut). Statusdetaljer som "Powerplay (5 on 4) for X" räknas inte.
+const statusSlag = s => {
+  const t = String(s || '').toLowerCase();
+  if (/finished|final/.test(t)) return 'slut';
+  if (/waiting|ended|intermission/.test(t)) return 'paus';
+  if (/overtime/.test(t)) return 'forl';
+  if (/shots|shoot|penalty/.test(t)) return 'straff';
+  return t ? 'spel' : '';
+};
+const synligt = matcher => JSON.stringify(Object.entries(matcher).sort(([a], [b]) => a.localeCompare(b))
+  .map(([n, k]) => [n, k.id, k.h, k.b, k.perioder, k.klar, k.slut, statusSlag(k.status)]));
+
 // ---------- en bevakningsrunda ----------
 export async function bevaka(env, nu = new Date(), hamtaFn = hamta) {
   const lage = (await env.LIVE.get('live', 'json')) || { matcher: {} };
-  const fore = JSON.stringify(lage.matcher);
+  const fore = synligt(lage.matcher);
   const nuSv = svenskNu(nu);
   const nuMin = minuter(nuSv);
 
@@ -199,7 +212,7 @@ export async function bevaka(env, nu = new Date(), hamtaFn = hamta) {
     if (nuMin - minuter(tid) > BEHALL_TIMMAR * 60) delete lage.matcher[n];
   }
 
-  if (JSON.stringify(lage.matcher) !== fore) {
+  if (synligt(lage.matcher) !== fore) {
     lage.uppdaterad = nuSv;
     await env.LIVE.put('live', JSON.stringify(lage));
   }
@@ -224,7 +237,7 @@ async function vackGithub(env, serier) {
 
 // ---------- svaret till sidan ----------
 async function svaraLive(env) {
-  const lage = (await env.LIVE.get('live', 'json')) || { matcher: {} };
+  const lage = (await env.LIVE.get('live', { type: 'json', cacheTtl: 30 })) || { matcher: {} };
   // Matcher med id men utan ställning (inte igång än) följer med, så att sidan kan hämta uppställningen
   const matcher = Object.values(lage.matcher).filter(m => m.id && m.serie);
   return new Response(JSON.stringify({ uppdaterad: lage.uppdaterad || null, matcher }), {

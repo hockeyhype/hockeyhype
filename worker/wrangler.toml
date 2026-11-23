@@ -12,9 +12,9 @@ workers_dev = false
 [vars]
 GITHUB_REPO = "hockeyhype/hockeyhype"
 
-# Varannan minut, dygnet runt. Rundan avslutas direkt om ingen match pågår.
+# Varje minut, dygnet runt. Rundan avslutas direkt om ingen match pågår.
 [triggers]
-crons = ["*/2 * * * *"]
+crons = ["* * * * *"]
 
 # KV-lagringen för läget (skapad med: npx wrangler kv namespace create LIVE)
 [[kv_namespaces]]

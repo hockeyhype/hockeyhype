@@ -3825,13 +3825,13 @@ function sasongIAdress(){
 }
 
 /* ---------- Live: pagaende matcher fran Cloudflare-workern (worker/) ----------
-   Workern bevakar swehockeys matchsidor varannan minut och svarar pa /api/live. Sidan fragar
+   Workern bevakar swehockeys matchsidor varje minut och svarar pa /api/live. Sidan fragar
    bara nar nagon match i sasongens data pagar (eller borjar inom en halvtimme), och bara nar
    fliken syns. Klara matcher visas som "Slut" tills nasta datauppdatering flyttar dem till
    spelade matcher. */
 let LIVE = {};          // "serieId|YYYY-MM-DD|hemma|borta" -> {h, b, status, klar, perioder}
 let liveSignatur = '';
-const LIVE_INTERVALL = 60 * 1000;
+const LIVE_INTERVALL = 30 * 1000;   // workern läser swehockey varje minut
 function liveFor(g, m){
   const e = liveEntry(g, m);
   return e && e.h != null ? e : null;   // bara matcher som är igång (med ställning)
