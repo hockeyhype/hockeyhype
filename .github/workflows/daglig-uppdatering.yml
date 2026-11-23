@@ -62,6 +62,10 @@ jobs:
           echo "bevaka=$bevaka" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@v4
         if: steps.tid.outputs.kor == 'true'
+        with:
+          # Senaste main, inte läget när körningen startades: en väckning från workern kan ha väntat på
+          # en annan körning (concurrency) och annars bygga på gammal data (krockade 2026-11-22 20:44)
+          ref: main
       - uses: actions/setup-python@v5
         if: steps.tid.outputs.kor == 'true'
         with:
@@ -106,8 +110,15 @@ jobs:
           else
             if [ "${{ steps.tid.outputs.bevaka }}" = true ]; then rubrik="Matchbevakning"; else rubrik="Daglig uppdatering"; fi
             git commit -m "$rubrik $(date '+%F %H:%M')"
-            git pull --rebase   # om något annat hunnit pushas under körningen
-            git push
+            # Om något annat hunnit pushas under körningen: lägg ändringarna ovanpå. Krockar i samma fil
+            # löses till den här körningens data (den är nyast). Tre försök - GitHub svarar ibland inte
+            # (2026-11-22 06:49).
+            for forsok in 1 2 3; do
+              if git pull --rebase -X theirs && git push; then break; fi
+              git rebase --abort 2>/dev/null || true
+              [ "$forsok" = 3 ] && exit 1
+              echo "Försök $forsok misslyckades, väntar och försöker igen"; sleep 20
+            done
             echo "andrat=true" >> "$GITHUB_OUTPUT"
           fi
 
